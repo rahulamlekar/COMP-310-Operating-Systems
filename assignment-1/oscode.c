@@ -26,7 +26,8 @@ int getcmd(char *prompt, char *args[], int *background)
         *background = 0;
 
     while ((token = strsep(&line, " \t\n")) != NULL) {
-        for (int j = 0; j < strlen(token); j++)
+    	int j;
+        for (j = 0; j < strlen(token); j++)
             if (token[j] <= 32)
                 token[j] = '\0';
         if (strlen(token) > 0)
@@ -41,15 +42,39 @@ int main()
 {
     char *args[20];
     int bg;
-    int cnt = getcmd("\n>>  ", args, &bg);
 
-    for (int i = 0; i < cnt; i++)
-        printf("\nArg[%d] = %s", i, args[i]);
+    while (1) {
+        int cnt = getcmd("\n>>  ", args, &bg);
+        int i;
+        for (i = 0; i < cnt; i++)
+            printf("\nArg[%d] = %s", i, args[i]);
 
-    if (bg)
-        printf("\nBackground enabled..\n");
-    else
-        printf("\nBackground not enabled \n");
+        // Create a new array representing only the arguments for the file we will be running
+        char* argumentArray[cnt];
+        for (i = 0; i < cnt; i++) {
+        	argumentArray[i] = args[i + 1];
+        }
+        // Terminate with null
+        argumentArray[cnt - 1] = NULL;
 
-    printf("\n\n");
+        int childProcessId = fork();
+    	if (!childProcessId) {
+    		// This is the child, so execute the command
+    		execvp(args[0], args);
+    	} else {
+    		// This is the parent, so wait for the child if necessary
+            if (bg) {
+                printf("\nBackground enabled..\n");
+                // Child executes in asynch
+            } else {
+                printf("\nBackground not enabled \n");
+                // Child executes synchronously, so we wait
+                waitpid(childProcessId);
+            }
+    	}
+
+        printf("\n\n");
+
+    }
+
 }

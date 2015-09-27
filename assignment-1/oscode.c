@@ -80,7 +80,7 @@ int modular_decriment(int i, int size) {
 int getcmd(char *prompt, char *args[], int *background, char* newline)
 {
     int length;
-    char *token, *loc;
+    char *loc;
     char *line;
     size_t linecap = 0;
 
@@ -105,6 +105,16 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
     } else
         *background = 0;
 
+    // Parse the command to extract the argument array
+    return parseCmd(line, args);
+}
+
+
+/**
+ * Parse the command to extract the argument array.
+ */
+int parseCmd(char* line, char *args[]) {
+	char *token;
     int i = 0;
     while ((token = strsep(&line, " \t\n")) != NULL) {
     	int j;
@@ -114,13 +124,33 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
         if (strlen(token) > 0)
             args[i++] = token;
     }
-
     return i;
 }
 
-//void tokenize_cmd(char* args[], char* line) {
-//
-//}
+
+void freecmd(char* args[]) {
+	// Get the name of the command we will run
+	char* commandName = args[0];
+
+	// If the command is one of the default commands, run that
+	if (strcmp(commandName, "cd") == 0) {
+		// Change the current directory to the first argument
+		chdir(args[1]);
+	} else if (strcmp(commandName, "pwd") == 0) {
+		// Print the current directory
+		char pwd[256];
+		printf("%s", getcwd(pwd, sizeof(pwd)));
+	} else if (strcmp(commandName, "fg") == 0) {
+		// TODO: Switch to a job
+
+	} else if (strcmp(commandName, "jobs") == 0) {
+		// Print the list of current jobs
+    	//print_process_list(processes, PROCESS_LIST_SIZE);
+	} else {
+		// Run a normal command
+		execvp(commandName, args);
+	}
+}
 
 
 int main()
@@ -169,6 +199,8 @@ int main()
         		// There is a matching command!  Add it to the history again.
         		circular_buffer_push(&command_history, historicCommand);
         		printf("command: %s", historicCommand);
+        		// Extract arguments from the historic command
+        		parseCmd(historicCommand, args);
         	}
         } else {
         	// We're not using history, so add the input to the buffer
@@ -177,50 +209,23 @@ int main()
 
         print_buffer(command_history);
 
-//        pid_t childProcessId = fork();
-//    	if (!childProcessId) {
-//    		// This is the child, so execute the command
-//    		freecmd(args);
-//    	} else {
-//    		// This is the parent, so wait for the child if necessary
-//            if (bg) {
-//                printf("\nBackground enabled..\n");
-//                // Child executes in async
-//            } else {
-//                printf("\nBackground not enabled \n");
-//                // Child executes synchronously, so we wait
-//                waitpid(childProcessId);
-//            }
-//    	}
+        pid_t childProcessId = fork();
+    	if (!childProcessId) {
+    		// This is the child, so execute the command
+    		freecmd(args);
+    	} else {
+    		// This is the parent, so wait for the child if necessary
+            if (bg) {
+                printf("\nBackground enabled..\n");
+                // Child executes in async
+            } else {
+                printf("\nBackground not enabled \n");
+                // Child executes synchronously, so we wait
+                waitpid(childProcessId);
+            }
+    	}
 
         printf("\n\n");
     }
-}
-
-
-freecmd(char* args[], pid_t processes[]) {
-	// Get the name of the command we will run
-	char* commandName = args[0];
-
-	// If the command is one of the default commands, run that
-	if (strcmp(commandName, "cd") == 0) {
-		// Change the current directory to the first argument
-		chdir(args[1]);
-	} else if (strcmp(commandName, "pwd") == 0) {
-		// Print the current directory
-		char pwd[256];
-		printf("%s", getcwd(pwd, sizeof(pwd)));
-	} else if (strcmp(commandName, "fg") == 0) {
-		// TODO: Switch to a job
-
-	} else if (strcmp(commandName, "jobs") == 0) {
-		// Print the list of current jobs
-    	//print_process_list(processes, PROCESS_LIST_SIZE);
-	} else {
-		// Run a normal command
-		execvp(commandName, args);
-	}
-
-	return 0;
 }
 

@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+#define TEXT_INPUT_SIZE 20
 #define PROCESS_LIST_SIZE 6
 
 typedef struct command_circular_buffer {
@@ -11,19 +12,16 @@ typedef struct command_circular_buffer {
 	int size;
 } command_circular_buffer;
 
-void circular_buffer_push(command_circular_buffer buffer, char* command) {
+void circular_buffer_push(command_circular_buffer* buffer, char* command) {
 	// Decrement the buffer index
-	buffer.index = modular_decriment(buffer.index, buffer.size);
+	buffer->index = modular_decriment(buffer->index, buffer->size);
+	// Delete the current member
+	//free(buffer->commands[buffer->index]);
 	// Copy the new string string
-	strcpy(buffer.commands[buffer.index], command);
-}
-
-char* circular_buffer_pop(command_circular_buffer buffer) {
-	int oldIndex = buffer.index;
-	// Increment the index
-	buffer.index = modular_increment(buffer.index, buffer.size);
-	// Return the string
-	return buffer.commands[buffer.index];
+	char* newCommand = (char *) malloc(sizeof(char) * (TEXT_INPUT_SIZE + 1));
+	strcpy(newCommand, command);
+	printf("Assigning %d: %s\n", buffer->index, newCommand);
+	buffer->commands[buffer->index] = newCommand;
 }
 
 char* circular_buffer_scan(command_circular_buffer buffer, char c) {
@@ -31,14 +29,21 @@ char* circular_buffer_scan(command_circular_buffer buffer, char c) {
 	int i;
 	for (i = 0; i < buffer.size; i++) {
 		// If the command starts with the string
-		if (buffer.commands[buffer.index][0] == c) {
-			return buffer.commands[buffer.index];
+		if (buffer.commands[scanIndex][0] == c) {
+			return buffer.commands[scanIndex];
 		}
 		// Loop through buffer
 		scanIndex = modular_decriment(scanIndex, buffer.size);
 	}
 	// It's not there, so return null
 	return NULL;
+}
+
+void print_buffer(command_circular_buffer buffer) {
+	int i;
+	for (i = 0; i < buffer.size; i++) {
+		printf("%d: %s\n", i, buffer.commands[i]);
+	}
 }
 
 void circular_buffer_replace(command_circular_buffer buffer, char* command) {
@@ -78,6 +83,8 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
     char *token, *loc;
     char *line;
     size_t linecap = 0;
+
+
 
     printf("%s", prompt);
     length = getline(&line, &linecap, stdin);
@@ -129,12 +136,15 @@ int main()
 	pid_t processes[] = {-1, -1, -1, -1, -1, -1};
     char *args[20];
     int bg;
-    char* newline;
+    char newline[20];
 
     while (1) {
     	//flush_completed_processes(&processes, PROCESS_LIST_SIZE);
 
     	int cnt = getcmd("\n>>  ", args, &bg, newline);
+
+    	printf("\n\n TEST: %s\n\n", newline);
+
         int i;
         for (i = 0; i < cnt; i++)
             printf("\nArg[%d] = %s", i, args[i]);
@@ -144,21 +154,44 @@ int main()
         	exit(-1);
         }
 
-        pid_t childProcessId = fork();
-    	if (!childProcessId) {
-    		// This is the child, so execute the command
-    		freecmd(args);
-    	} else {
-    		// This is the parent, so wait for the child if necessary
-            if (bg) {
-                printf("\nBackground enabled..\n");
-                // Child executes in async
-            } else {
-                printf("\nBackground not enabled \n");
-                // Child executes synchronously, so we wait
-                waitpid(childProcessId);
-            }
-    	}
+        // Handle history!
+        if (strcmp(args[0], "r") == 0) {
+        	// We are using the history command!
+
+        	// The char we are searching for
+        	char character = args[1][0];
+
+        	printf("\nHistory for %c!\n", character);
+        	char* historicCommand = circular_buffer_scan(command_history, character);
+        	if (historicCommand == NULL) {
+        		printf("NO MATCHING COMMAND IN HISTORY.\n");
+        	} else {
+        		// There is a matching command!  Add it to the history again.
+        		circular_buffer_push(&command_history, historicCommand);
+        		printf("command: %s", historicCommand);
+        	}
+        } else {
+        	// We're not using history, so add the input to the buffer
+        	circular_buffer_push(&command_history, newline);
+        }
+
+        print_buffer(command_history);
+
+//        pid_t childProcessId = fork();
+//    	if (!childProcessId) {
+//    		// This is the child, so execute the command
+//    		freecmd(args);
+//    	} else {
+//    		// This is the parent, so wait for the child if necessary
+//            if (bg) {
+//                printf("\nBackground enabled..\n");
+//                // Child executes in async
+//            } else {
+//                printf("\nBackground not enabled \n");
+//                // Child executes synchronously, so we wait
+//                waitpid(childProcessId);
+//            }
+//    	}
 
         printf("\n\n");
     }

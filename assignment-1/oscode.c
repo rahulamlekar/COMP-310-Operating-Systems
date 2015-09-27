@@ -12,7 +12,15 @@ typedef struct command_circular_buffer {
 	int size;
 } command_circular_buffer;
 
-void circular_buffer_push(command_circular_buffer* buffer, char* command) {
+typedef struct pid_circular_buffer {
+	pid_t pids[PROCESS_LIST_SIZE];
+	int index;
+} pid_circular_buffer;
+
+/**
+ * Push a command to the command buffer.
+ */
+void command_buffer_push(command_circular_buffer* buffer, char* command) {
 	// Decrement the buffer index
 	buffer->index = modular_decriment(buffer->index, buffer->size);
 	// Delete the current member
@@ -24,7 +32,7 @@ void circular_buffer_push(command_circular_buffer* buffer, char* command) {
 	buffer->commands[buffer->index] = newCommand;
 }
 
-char* circular_buffer_scan(command_circular_buffer buffer, char c) {
+char* command_buffer_scan(command_circular_buffer buffer, char c) {
 	int scanIndex = buffer.index;
 	int i;
 	for (i = 0; i < buffer.size; i++) {
@@ -39,17 +47,6 @@ char* circular_buffer_scan(command_circular_buffer buffer, char c) {
 	return NULL;
 }
 
-void print_buffer(command_circular_buffer buffer) {
-	int i;
-	for (i = 0; i < buffer.size; i++) {
-		printf("%d: %s\n", i, buffer.commands[i]);
-	}
-}
-
-void circular_buffer_replace(command_circular_buffer buffer, char* command) {
-	strcpy(buffer.commands[buffer.index], command);
-}
-
 int modular_increment(int i, int size) {
 	return (i + size + 1) % size;
 }
@@ -58,24 +55,41 @@ int modular_decriment(int i, int size) {
 	return (i + size - 1) % size;
 }
 
-//void flush_completed_processes(pid_t processes[], int n) {
-//	int i;
-//	for (i = 0; i < n; i++) {
-//		// If the process is complete, remove it from the list
-//		if (kill(*processes[i], 2) == -1) {
-//			*processes[i] = -1;
+void flush_completed_processes(pid_circular_buffer* buffer) {
+	int i;
+	for (i = 0; i < PROCESS_LIST_SIZE; i++) {
+		// If the process is complete, remove it from the list
+//		if (kill(buffer->pids[i], 2) == -1) {
+//			buffer->pids[i] = -1;
 //		}
-//	}
-//}
-//
-//void print_process_list(pid_t processes, n) {
-//	int i;
-//	for (i = 0; i < n; i++) {
-//		if (processes[i] >= 0) {
-//			printf("Process %d running.\n", processes[i]);
-//		}
-//	}
-//}
+	}
+}
+
+void print_process_list(pid_circular_buffer buffer) {
+	int i;
+	for (i = 0; i < PROCESS_LIST_SIZE; i++) {
+		if (buffer.pids[i] >= 0) {
+			printf("Process %d running.\n", buffer.pids[i]);
+		}
+	}
+	printf("\nTest.\n");
+}
+
+void process_list_push(pid_circular_buffer* buffer, pid_t pid) {
+	int currentIndex = buffer->index;
+	int i;
+	for (i = 0; i < PROCESS_LIST_SIZE; i++) {
+		if (buffer->pids[currentIndex] == 0) {
+			// Add the new pid
+			buffer->pids[currentIndex] = pid;
+			return;
+		}
+		currentIndex = modular_increment(currentIndex, PROCESS_LIST_SIZE);
+	}
+	// There are no free spots, so we will force push one
+	buffer->index = modular_increment(buffer->index, PROCESS_LIST_SIZE);
+	buffer->pids[buffer->index] = pid;
+}
 
 int getcmd(char *prompt, char *args[], int *background, char* newline)
 {
@@ -89,10 +103,8 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
     printf("%s", prompt);
     length = getline(&line, &linecap, stdin);
 
+    // Copy the string out
     strcpy(newline, line);
-
-
-    printf("\n\n %s \n\n", line);
 
     if (length <= 0) {
         exit(-1);
@@ -128,7 +140,7 @@ int parseCmd(char* line, char *args[]) {
 }
 
 
-void freecmd(char* args[]) {
+void freecmd(char* args[], pid_circular_buffer processes) {
 	// Get the name of the command we will run
 	char* commandName = args[0];
 
@@ -145,7 +157,8 @@ void freecmd(char* args[]) {
 
 	} else if (strcmp(commandName, "jobs") == 0) {
 		// Print the list of current jobs
-    	//print_process_list(processes, PROCESS_LIST_SIZE);
+    	flush_completed_processes(&processes);
+    	print_process_list(processes);
 	} else {
 		// Run a normal command
 		execvp(commandName, args);
@@ -160,17 +173,17 @@ int main()
 			{"", "", "", "", "", "", "", "", "", ""},
 			0,
 			10
-
 	};
 
-	pid_t processes[] = {-1, -1, -1, -1, -1, -1};
+	pid_circular_buffer jobs = {
+			{0, 0, 0, 0, 0, 0},
+			0
+	};
     char *args[20];
     int bg;
     char newline[20];
 
     while (1) {
-    	//flush_completed_processes(&processes, PROCESS_LIST_SIZE);
-
     	int cnt = getcmd("\n>>  ", args, &bg, newline);
 
     	printf("\n\n TEST: %s\n\n", newline);
@@ -192,32 +205,32 @@ int main()
         	char character = args[1][0];
 
         	printf("\nHistory for %c!\n", character);
-        	char* historicCommand = circular_buffer_scan(command_history, character);
+        	char* historicCommand = command_buffer_scan(command_history, character);
         	if (historicCommand == NULL) {
         		printf("NO MATCHING COMMAND IN HISTORY.\n");
         	} else {
         		// There is a matching command!  Add it to the history again.
-        		circular_buffer_push(&command_history, historicCommand);
+        		command_buffer_push(&command_history, historicCommand);
         		printf("command: %s", historicCommand);
         		// Extract arguments from the historic command
         		parseCmd(historicCommand, args);
         	}
         } else {
         	// We're not using history, so add the input to the buffer
-        	circular_buffer_push(&command_history, newline);
+        	command_buffer_push(&command_history, newline);
         }
-
-        print_buffer(command_history);
 
         pid_t childProcessId = fork();
     	if (!childProcessId) {
     		// This is the child, so execute the command
-    		freecmd(args);
+    		freecmd(args, jobs);
     	} else {
     		// This is the parent, so wait for the child if necessary
             if (bg) {
                 printf("\nBackground enabled..\n");
                 // Child executes in async
+                // Add to the process list
+                process_list_push(&jobs, childProcessId);
             } else {
                 printf("\nBackground not enabled \n");
                 // Child executes synchronously, so we wait

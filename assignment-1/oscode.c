@@ -72,7 +72,7 @@ int modular_decriment(int i, int size) {
 //	}
 //}
 
-int getcmd(char *prompt, char *args[], int *background, command_circular_buffer command_buffer)
+int getcmd(char *prompt, char *args[], int *background, char* newline)
 {
     int length;
     char *token, *loc;
@@ -82,12 +82,10 @@ int getcmd(char *prompt, char *args[], int *background, command_circular_buffer 
     printf("%s", prompt);
     length = getline(&line, &linecap, stdin);
 
+    strcpy(newline, line);
+
+
     printf("\n\n %s \n\n", line);
-
-    // Copy the string to the buffer
-    circular_buffer_push(command_buffer, line);
-
-    printf("TEST");
 
     if (length <= 0) {
         exit(-1);
@@ -131,11 +129,12 @@ int main()
 	pid_t processes[] = {-1, -1, -1, -1, -1, -1};
     char *args[20];
     int bg;
+    char* newline;
 
     while (1) {
     	//flush_completed_processes(&processes, PROCESS_LIST_SIZE);
 
-    	int cnt = getcmd("\n>>  ", args, &bg, command_history);
+    	int cnt = getcmd("\n>>  ", args, &bg, newline);
         int i;
         for (i = 0; i < cnt; i++)
             printf("\nArg[%d] = %s", i, args[i]);

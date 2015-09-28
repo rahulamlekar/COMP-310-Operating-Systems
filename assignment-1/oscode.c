@@ -119,6 +119,26 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
 }
 
 
+//char* copyStringArray(char* array[], int startingIndex, int size) {
+//	int newSize = size - startingIndex;
+//	char* output[newSize];
+//
+//	int i;
+//	for (i = 0; i < newSize; i++) {
+//		output[i] = array[i + startingIndex];
+//	}
+//
+//	return output;
+//}
+
+void loadArrayNull(char* array[], int size) {
+	int i;
+	for (i = 0; i < size; i++) {
+		array[i] = NULL;
+	}
+}
+
+
 /**
  * Parse the command to extract the argument array.
  */
@@ -158,6 +178,7 @@ void freecmd(char* args[], pid_circular_buffer processes) {
     	print_process_list(processes);
 	} else {
 		// Run a normal command
+		printf("\n EXECVP \n");
 		execvp(commandName, args);
 	}
 }
@@ -181,6 +202,9 @@ int main()
     char newline[20];
 
     while (1) {
+    	// Reset args
+    	loadArrayNull(args, 20);
+
     	int cnt = getcmd("\n>>  ", args, &bg, newline);
 
 //        int i;
@@ -196,7 +220,7 @@ int main()
         if (strcmp(args[0], "r") == 0) {
         	// We are using the history command!
 
-        	// The char we are searching for
+        	// The char we are  searching for
         	char character = args[1][0];
 
         	printf("\nHistory for %c!\n", character);
@@ -215,10 +239,18 @@ int main()
         	command_buffer_push(&command_history, newline);
         }
 
+        int i;
+        for (i = 0; i < 20; i++) {
+        	printf("%d: %s\n", i, args[i]);
+        }
+
         pid_t childProcessId = fork();
     	if (!childProcessId) {
+    		printf("\nChild %d\n", childProcessId);
     		// This is the child, so execute the command
     		freecmd(args, jobs);
+    		// Kill the child
+    		return 1;
     	} else {
     		// This is the parent, so wait for the child if necessary
             if (bg) {
@@ -227,7 +259,7 @@ int main()
                 // Add to the process list
                 process_list_push(&jobs, childProcessId);
             } else {
-                printf("\nBackground not enabled \n");
+                printf("\nBackground not enabled %d\n", childProcessId);
                 // Child executes synchronously, so we wait
                 waitpid(childProcessId);
             }

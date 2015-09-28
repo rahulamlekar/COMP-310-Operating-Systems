@@ -157,7 +157,7 @@ int parseCmd(char* line, char *args[]) {
 }
 
 
-void freecmd(char* args[], pid_circular_buffer processes) {
+void freecmd(char* args[], pid_circular_buffer processes, int bg) {
 	// Get the name of the command we will run
 	char* commandName = args[0];
 
@@ -178,8 +178,25 @@ void freecmd(char* args[], pid_circular_buffer processes) {
     	print_process_list(processes);
 	} else {
 		// Run a normal command
-		//printf("\n EXECVP \n");
-		execvp(commandName, args);
+        pid_t childProcessId = fork();
+    	if (!childProcessId) {
+    		printf("\nChild %d\n", childProcessId);
+    		// This is the child, so execute the command
+    		//freecmd(args, jobs);
+    		execvp(commandName, args);
+    	} else {
+    		// This is the parent, so wait for the child if necessary
+            if (bg) {
+                //printf("\nBackground enabled..\n");
+                // Child executes in async
+                // Add to the process list
+                process_list_push(&processes, childProcessId);
+            } else {
+                ///printf("\nBackground not enabled %d\n", childProcessId);
+                // Child executes synchronously, so we wait
+               waitpid(childProcessId);
+            }
+    	}
 	}
 }
 
@@ -244,24 +261,8 @@ int main()
 //        	printf("%d: %s\n", i, args[i]);
 //        }
 
-        pid_t childProcessId = fork();
-    	if (!childProcessId) {
-    		//printf("\nChild %d\n", childProcessId);
-    		// This is the child, so execute the command
-    		freecmd(args, jobs);
-    	} else {
-    		// This is the parent, so wait for the child if necessary
-            if (bg) {
-                //printf("\nBackground enabled..\n");
-                // Child executes in async
-                // Add to the process list
-                process_list_push(&jobs, childProcessId);
-            } else {
-                ///printf("\nBackground not enabled %d\n", childProcessId);
-                // Child executes synchronously, so we wait
-               waitpid(childProcessId);
-            }
-    	}
+        // Run a command
+		freecmd(args, jobs, bg);
 
         printf("\n\n");
     }

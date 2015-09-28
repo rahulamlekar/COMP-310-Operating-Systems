@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
+
 #define TEXT_INPUT_SIZE 20
 #define PROCESS_LIST_SIZE 6
 
@@ -28,7 +29,6 @@ void command_buffer_push(command_circular_buffer* buffer, char* command) {
 	// Copy the new string string
 	char* newCommand = (char *) malloc(sizeof(char) * (TEXT_INPUT_SIZE + 1));
 	strcpy(newCommand, command);
-	printf("Assigning %d: %s\n", buffer->index, newCommand);
 	buffer->commands[buffer->index] = newCommand;
 }
 
@@ -58,10 +58,7 @@ int modular_decriment(int i, int size) {
 void flush_completed_processes(pid_circular_buffer* buffer) {
 	int i;
 	for (i = 0; i < PROCESS_LIST_SIZE; i++) {
-		// If the process is complete, remove it from the list
-//		if (kill(buffer->pids[i], 2) == -1) {
-//			buffer->pids[i] = -1;
-//		}
+		int processStatus = waitpid(buffer->pids[buffer->index], NULL, WNOHANG, WUNTRACED);
 	}
 }
 
@@ -186,11 +183,9 @@ int main()
     while (1) {
     	int cnt = getcmd("\n>>  ", args, &bg, newline);
 
-    	printf("\n\n TEST: %s\n\n", newline);
-
-        int i;
-        for (i = 0; i < cnt; i++)
-            printf("\nArg[%d] = %s", i, args[i]);
+//        int i;
+//        for (i = 0; i < cnt; i++)
+//            printf("\nArg[%d] = %s", i, args[i]);
 
         // Exit if user enters "exit" command
         if (strcmp(args[0], "exit") == 0) {

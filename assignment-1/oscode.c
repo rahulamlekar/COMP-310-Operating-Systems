@@ -69,7 +69,6 @@ void print_process_list(pid_circular_buffer buffer) {
 			printf("Process %d running.\n", buffer.pids[i]);
 		}
 	}
-	printf("\nTest.\n");
 }
 
 void process_list_push(pid_circular_buffer* buffer, pid_t pid) {
@@ -179,7 +178,7 @@ void freecmd(char* args[], pid_circular_buffer processes) {
     	print_process_list(processes);
 	} else {
 		// Run a normal command
-		printf("\n EXECVP \n");
+		//printf("\n EXECVP \n");
 		execvp(commandName, args);
 	}
 }
@@ -240,29 +239,27 @@ int main()
         	command_buffer_push(&command_history, newline);
         }
 
-        int i;
-        for (i = 0; i < 20; i++) {
-        	printf("%d: %s\n", i, args[i]);
-        }
+//        int i;
+//        for (i = 0; i < 20; i++) {
+//        	printf("%d: %s\n", i, args[i]);
+//        }
 
         pid_t childProcessId = fork();
     	if (!childProcessId) {
-    		printf("\nChild %d\n", childProcessId);
+    		//printf("\nChild %d\n", childProcessId);
     		// This is the child, so execute the command
     		freecmd(args, jobs);
-    		// Kill the child
-    		return 1;
     	} else {
     		// This is the parent, so wait for the child if necessary
             if (bg) {
-                printf("\nBackground enabled..\n");
+                //printf("\nBackground enabled..\n");
                 // Child executes in async
                 // Add to the process list
                 process_list_push(&jobs, childProcessId);
             } else {
-                printf("\nBackground not enabled %d\n", childProcessId);
+                ///printf("\nBackground not enabled %d\n", childProcessId);
                 // Child executes synchronously, so we wait
-                waitpid(childProcessId);
+               waitpid(childProcessId);
             }
     	}
 

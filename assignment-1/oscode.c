@@ -143,6 +143,7 @@ void loadArrayNull(char* array[], int size) {
  * Parse the command to extract the argument array.
  */
 int parseCmd(char* line, char *args[]) {
+	loadArrayNull(args, TEXT_INPUT_SIZE);
 	char *token;
     int i = 0;
     while ((token = strsep(&line, " \t\n")) != NULL) {

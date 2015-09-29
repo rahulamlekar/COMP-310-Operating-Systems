@@ -55,7 +55,7 @@ char* command_buffer_scan(command_circular_buffer buffer, char c) {
  * Print out the 10 most recent commands
  */
 void print_history(command_circular_buffer buffer) {
-	printf("Command history:\n");
+	printf("Command history (10 most recent of %d total):\n", buffer.totalCount);
 	int modularIndex = buffer.index;
 	int i;
 	for (i = 0; i < HISTORY_SIZE; i++) {
@@ -260,6 +260,7 @@ int main()
         if (strcmp(args[0], "history") == 0) {
         	// Print out the history
         	print_history(command_history);
+        	command_buffer_push(&command_history, newline);
         } else if (strcmp(args[0], "r") == 0) {
         	// We are using the history command!
 

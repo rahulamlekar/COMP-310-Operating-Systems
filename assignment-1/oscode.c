@@ -3,7 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 
-
+#define HISTORY_SIZE 10
 #define TEXT_INPUT_SIZE 20
 #define PROCESS_LIST_SIZE 6
 
@@ -11,6 +11,7 @@ typedef struct command_circular_buffer {
 	char* commands[10];
 	int index;
 	int size;
+	int totalCount;
 } command_circular_buffer;
 
 typedef struct pid_circular_buffer {
@@ -30,6 +31,8 @@ void command_buffer_push(command_circular_buffer* buffer, char* command) {
 	char* newCommand = (char *) malloc(sizeof(char) * (TEXT_INPUT_SIZE + 1));
 	strcpy(newCommand, command);
 	buffer->commands[buffer->index] = newCommand;
+	// Increase the total count
+	buffer->totalCount++;
 }
 
 char* command_buffer_scan(command_circular_buffer buffer, char c) {
@@ -45,6 +48,26 @@ char* command_buffer_scan(command_circular_buffer buffer, char c) {
 	}
 	// It's not there, so return null
 	return NULL;
+}
+
+
+/**
+ * Print out the 10 most recent commands
+ */
+void print_history(command_circular_buffer buffer) {
+	printf("Command history:\n");
+	int modularIndex = buffer.index;
+	int i;
+	for (i = 0; i < HISTORY_SIZE; i++) {
+		if (i < buffer.totalCount) {
+			int absoluteIndex = buffer.totalCount - i;
+			printf("%d: %s\n", absoluteIndex, buffer.commands[modularIndex]);
+			modularIndex = modular_increment(modularIndex, buffer.size);
+		} else {
+			// Fewer elements in buffer than total size.
+			return;
+		}
+	}
 }
 
 int modular_increment(int i, int size) {
@@ -171,7 +194,8 @@ void freecmd(char* args[], pid_circular_buffer processes, int bg) {
 		printf("%s", getcwd(pwd, sizeof(pwd)));
 	} else if (strcmp(commandName, "fg") == 0) {
 		// TODO: Switch to a job
-
+		pid_t pid = atoi(args[1]);
+		waitpid(pid);
 	} else if (strcmp(commandName, "jobs") == 0) {
 		// Print the list of current jobs
     	flush_completed_processes(&processes);
@@ -180,9 +204,7 @@ void freecmd(char* args[], pid_circular_buffer processes, int bg) {
 		// Run a normal command
         pid_t childProcessId = fork();
     	if (!childProcessId) {
-    		printf("\nChild %d\n", childProcessId);
     		// This is the child, so execute the command
-    		//freecmd(args, jobs);
     		execvp(commandName, args);
     	} else {
     		// This is the parent, so wait for the child if necessary
@@ -207,7 +229,8 @@ int main()
 	command_circular_buffer command_history = {
 			{"", "", "", "", "", "", "", "", "", ""},
 			0,
-			10
+			10,
+			0
 	};
 
 	pid_circular_buffer jobs = {
@@ -234,7 +257,10 @@ int main()
         }
 
         // Handle history!
-        if (strcmp(args[0], "r") == 0) {
+        if (strcmp(args[0], "history") == 0) {
+        	// Print out the history
+        	print_history(command_history);
+        } else if (strcmp(args[0], "r") == 0) {
         	// We are using the history command!
 
         	// The char we are  searching for

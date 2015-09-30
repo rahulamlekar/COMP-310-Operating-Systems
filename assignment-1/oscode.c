@@ -219,7 +219,7 @@ void freecmd(char* args[], pid_circular_buffer* processes, int bg) {
 			// Switch to a job
 			pid_t pid = atoi(args[1]);
 			printf("Switching to process %d.\n", pid);
-			if (!waitpid(pid)) {
+			if (!waitpid(pid, NULL, 0)) {
 				printf("Error switching to process %d.\n", pid);
 			}
 		} else {
@@ -245,7 +245,7 @@ void freecmd(char* args[], pid_circular_buffer* processes, int bg) {
                 process_list_push(processes, childProcessId);
             } else {
                 // Child executes synchronously, so we wait
-               waitpid(childProcessId);
+               waitpid(childProcessId, NULL, 0);
             }
     	}
 	}

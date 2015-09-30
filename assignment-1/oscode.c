@@ -83,8 +83,8 @@ void flush_completed_processes(pid_circular_buffer* buffer) {
 	for (i = 0; i < PROCESS_LIST_SIZE; i++) {
 		pid_t pid = buffer->pids[i];
 		int processStatus;
-		waitpid(pid, &processStatus, WNOHANG, WUNTRACED);
-		printf("Test %d: %d\n", pid, processStatus);
+		int test = waitpid(pid, &processStatus, WNOHANG, WUNTRACED);
+		printf("Test %d: %d %d\n", pid, test, processStatus);
 	}
 }
 

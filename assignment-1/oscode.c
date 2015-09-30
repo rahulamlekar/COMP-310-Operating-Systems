@@ -3,6 +3,7 @@
 #include <string.h>
 #include <stdlib.h>
 #include <wait.h>
+#include <errno.h>
 
 #define HISTORY_SIZE 10
 #define TEXT_INPUT_SIZE 20
@@ -17,6 +18,7 @@ typedef struct command_circular_buffer {
 
 typedef struct pid_circular_buffer {
 	pid_t pids[PROCESS_LIST_SIZE];
+	//int statuses[PROCESS_LIST_SIZE];
 	int index;
 } pid_circular_buffer;
 
@@ -29,6 +31,7 @@ int modular_increment(int i, int size) {
 int modular_decriment(int i, int size) {
     return (i + size - 1) % size;
 }
+
 
 /**
  * Push a command to the command buffer.
@@ -93,9 +96,13 @@ void flush_completed_processes(pid_circular_buffer* buffer) {
 	int i;
 	for (i = 0; i < PROCESS_LIST_SIZE; i++) {
 		pid_t pid = buffer->pids[i];
-		int processStatus;
-		int test = waitpid(pid, &processStatus, WNOHANG | WUNTRACED);
-		printf("Test %d: %d %d\n", pid, test, processStatus);
+		int status = waitpid(pid, NULL, WNOHANG | WUNTRACED);
+		if (status != 0) {
+   			// The job has terminated, so remove it from the list
+			buffer->pids[i] = 0;
+	    }	
+		
+ 		//printf("Test %d: %d %d\n", pid, test, processStatus);
 	}
 }
 
@@ -296,7 +303,7 @@ int main()
             	// The char we are  searching for
             	char character = args[1][0];
 
-            	printf("\nHistory for %c!\n", character);
+            	printf("History for %c!\n", character);
             	char* historicCommand = command_buffer_scan(command_history, character);
             	if (historicCommand == NULL) {
             		printf("NO MATCHING COMMAND IN HISTORY.\n");

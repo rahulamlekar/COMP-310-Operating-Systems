@@ -45,6 +45,10 @@ void command_buffer_push(command_circular_buffer* buffer, char* command) {
 	buffer->totalCount++;
 }
 
+
+/**
+ * Scan the command buffer for the first command beginning wit the given character.
+ */
 char* command_buffer_scan(command_circular_buffer buffer, char c) {
 	int scanIndex = buffer.index;
 	int i;
@@ -81,6 +85,9 @@ void print_history(command_circular_buffer buffer) {
 }
 
 
+/**
+ * Remove completed processes from the process buffer.
+ */
 void flush_completed_processes(pid_circular_buffer* buffer) {
 	int i;
 	for (i = 0; i < PROCESS_LIST_SIZE; i++) {
@@ -91,6 +98,10 @@ void flush_completed_processes(pid_circular_buffer* buffer) {
 	}
 }
 
+
+/**
+ * Print the list of processes currently running in the buffer.
+ */
 void print_process_list(pid_circular_buffer buffer) {
 	printf("Jobs currently running:\n");
 	int totalJobs = 0;
@@ -106,6 +117,10 @@ void print_process_list(pid_circular_buffer buffer) {
 	}
 }
 
+
+/**
+ * Add a process to the buffer.
+ */
 void process_list_push(pid_circular_buffer* buffer, pid_t pid) {
 	int currentIndex = buffer->index;
 	int i;

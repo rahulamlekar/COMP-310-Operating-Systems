@@ -145,8 +145,6 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
     char *line;
     size_t linecap = 0;
 
-
-
     printf("%s", prompt);
     length = getline(&line, &linecap, stdin);
 
@@ -169,17 +167,6 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
 }
 
 
-//char* copyStringArray(char* array[], int startingIndex, int size) {
-//	int newSize = size - startingIndex;
-//	char* output[newSize];
-//
-//	int i;
-//	for (i = 0; i < newSize; i++) {
-//		output[i] = array[i + startingIndex];
-//	}
-//
-//	return output;
-//}
 
 void loadArrayNull(char* array[], int size) {
 	int i;

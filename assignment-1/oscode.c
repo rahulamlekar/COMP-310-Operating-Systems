@@ -81,7 +81,10 @@ int modular_decriment(int i, int size) {
 void flush_completed_processes(pid_circular_buffer* buffer) {
 	int i;
 	for (i = 0; i < PROCESS_LIST_SIZE; i++) {
-		int processStatus = waitpid(buffer->pids[buffer->index], NULL, WNOHANG, WUNTRACED);
+		pid_t pid = buffer->pids[i];
+		int processStatus;
+		waitpid(pid, &processStatus, WNOHANG, WUNTRACED);
+		printf("Test %d: %d\n", pid, processStatus);
 	}
 }
 
@@ -212,7 +215,7 @@ void freecmd(char* args[], pid_circular_buffer* processes, int bg) {
 		}
 	} else if (strcmp(commandName, "jobs") == 0) {
 		// Print the list of current jobs
-    	//flush_completed_processes(&processes);
+    	flush_completed_processes(processes);
     	print_process_list(*processes);
 	} else {
 		// Run a normal command

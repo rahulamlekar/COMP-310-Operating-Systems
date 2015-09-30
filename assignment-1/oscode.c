@@ -138,6 +138,37 @@ void process_list_push(pid_circular_buffer* buffer, pid_t pid) {
 	printf("Process %d running.\n", pid);
 }
 
+
+/**
+ * Load a string array with null strings.
+ */
+void loadArrayNull(char* array[], int size) {
+    int i;
+    for (i = 0; i < size; i++) {
+        array[i] = NULL;
+    }
+}
+
+
+/**
+ * Parse the command to extract the argument array.
+ */
+int parseCmd(char* line, char *args[]) {
+    loadArrayNull(args, TEXT_INPUT_SIZE);
+    char *token;
+    int i = 0;
+    while ((token = strsep(&line, " \t\n")) != NULL) {
+        int j;
+        for (j = 0; j < strlen(token); j++)
+            if (token[j] <= 32)
+                token[j] = '\0';
+        if (strlen(token) > 0)
+            args[i++] = token;
+    }
+    return i;
+}
+
+
 /**
  * Prompt the user to enter a command.
  */ 
@@ -167,34 +198,6 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
 
     // Parse the command to extract the argument array
     return parseCmd(line, args);
-}
-
-
-
-void loadArrayNull(char* array[], int size) {
-	int i;
-	for (i = 0; i < size; i++) {
-		array[i] = NULL;
-	}
-}
-
-
-/**
- * Parse the command to extract the argument array.
- */
-int parseCmd(char* line, char *args[]) {
-	loadArrayNull(args, TEXT_INPUT_SIZE);
-	char *token;
-    int i = 0;
-    while ((token = strsep(&line, " \t\n")) != NULL) {
-    	int j;
-        for (j = 0; j < strlen(token); j++)
-            if (token[j] <= 32)
-                token[j] = '\0';
-        if (strlen(token) > 0)
-            args[i++] = token;
-    }
-    return i;
 }
 
 

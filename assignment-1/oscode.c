@@ -263,20 +263,24 @@ int main()
         	command_buffer_push(&command_history, newline);
         } else if (strcmp(args[0], "r") == 0) {
         	// We are using the history command!
-
-        	// The char we are  searching for
-        	char character = args[1][0];
-
-        	printf("\nHistory for %c!\n", character);
-        	char* historicCommand = command_buffer_scan(command_history, character);
-        	if (historicCommand == NULL) {
-        		printf("NO MATCHING COMMAND IN HISTORY.\n");
+        	if (!args[1]) {
+        		// No command given
+        		printf("Please provide a character argument for the 'r' command.");
         	} else {
-        		// There is a matching command!  Add it to the history again.
-        		command_buffer_push(&command_history, historicCommand);
-        		printf("command: %s", historicCommand);
-        		// Extract arguments from the historic command
-        		parseCmd(historicCommand, args);
+            	// The char we are  searching for
+            	char character = args[1][0];
+
+            	printf("\nHistory for %c!\n", character);
+            	char* historicCommand = command_buffer_scan(command_history, character);
+            	if (historicCommand == NULL) {
+            		printf("NO MATCHING COMMAND IN HISTORY.\n");
+            	} else {
+            		// There is a matching command!  Add it to the history again.
+            		command_buffer_push(&command_history, historicCommand);
+            		printf("command: %s", historicCommand);
+            		// Extract arguments from the historic command
+            		parseCmd(historicCommand, args);
+            	}
         	}
         } else {
         	// We're not using history, so add the input to the buffer

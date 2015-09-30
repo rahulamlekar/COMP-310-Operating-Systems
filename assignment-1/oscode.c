@@ -138,6 +138,9 @@ void process_list_push(pid_circular_buffer* buffer, pid_t pid) {
 	printf("Process %d running.\n", pid);
 }
 
+/**
+ * Prompt the user to enter a command.
+ */ 
 int getcmd(char *prompt, char *args[], int *background, char* newline)
 {
     int length;

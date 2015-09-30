@@ -108,6 +108,7 @@ void process_list_push(pid_circular_buffer* buffer, pid_t pid) {
 	// There are no free spots, so we will force push one
 	buffer->index = modular_increment(buffer->index, PROCESS_LIST_SIZE);
 	buffer->pids[buffer->index] = pid;
+	printf("Process %d running.\n", pid);
 }
 
 int getcmd(char *prompt, char *args[], int *background, char* newline)
@@ -180,7 +181,7 @@ int parseCmd(char* line, char *args[]) {
 }
 
 
-void freecmd(char* args[], pid_circular_buffer processes, int bg) {
+void freecmd(char* args[], pid_circular_buffer* processes, int bg) {
 	// Get the name of the command we will run
 	char* commandName = args[0];
 
@@ -196,14 +197,17 @@ void freecmd(char* args[], pid_circular_buffer processes, int bg) {
 		if (args[1]) {
 			// Switch to a job
 			pid_t pid = atoi(args[1]);
-			waitpid(pid);
+			printf("Switching to process %d.\n", pid);
+			if (!waitpid(pid)) {
+				printf("Error switching to process %d.\n", pid);
+			}
 		} else {
 			printf("Please provide a process id argument for \"fg\"\n");
 		}
 	} else if (strcmp(commandName, "jobs") == 0) {
 		// Print the list of current jobs
-    	flush_completed_processes(&processes);
-    	print_process_list(processes);
+    	//flush_completed_processes(&processes);
+    	print_process_list(*processes);
 	} else {
 		// Run a normal command
         pid_t childProcessId = fork();
@@ -215,12 +219,10 @@ void freecmd(char* args[], pid_circular_buffer processes, int bg) {
     	} else {
     		// This is the parent, so wait for the child if necessary
             if (bg) {
-                //printf("\nBackground enabled..\n");
                 // Child executes in async
                 // Add to the process list
-                process_list_push(&processes, childProcessId);
+                process_list_push(processes, childProcessId);
             } else {
-                ///printf("\nBackground not enabled %d\n", childProcessId);
                 // Child executes synchronously, so we wait
                waitpid(childProcessId);
             }
@@ -252,10 +254,6 @@ int main()
     	loadArrayNull(args, 20);
 
     	int cnt = getcmd("\n>>  ", args, &bg, newline);
-
-//        int i;
-//        for (i = 0; i < cnt; i++)
-//            printf("\nArg[%d] = %s", i, args[i]);
 
         // Exit if user enters "exit" command
         if (strcmp(args[0], "exit") == 0) {
@@ -293,15 +291,10 @@ int main()
         	command_buffer_push(&command_history, newline);
         }
 
-//        int i;
-//        for (i = 0; i < 20; i++) {
-//        	printf("%d: %s\n", i, args[i]);
-//        }
-
         // Run a command
-		freecmd(args, jobs, bg);
+		freecmd(args, &jobs, bg);
 
-        printf("\n\n");
+        printf("\n");
     }
 }
 

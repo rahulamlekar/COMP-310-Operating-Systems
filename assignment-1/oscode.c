@@ -19,6 +19,16 @@ typedef struct pid_circular_buffer {
 	int index;
 } pid_circular_buffer;
 
+
+int modular_increment(int i, int size) {
+    return (i + size + 1) % size;
+}
+
+
+int modular_decriment(int i, int size) {
+    return (i + size - 1) % size;
+}
+
 /**
  * Push a command to the command buffer.
  */
@@ -70,13 +80,6 @@ void print_history(command_circular_buffer buffer) {
 	}
 }
 
-int modular_increment(int i, int size) {
-	return (i + size + 1) % size;
-}
-
-int modular_decriment(int i, int size) {
-	return (i + size - 1) % size;
-}
 
 void flush_completed_processes(pid_circular_buffer* buffer) {
 	int i;

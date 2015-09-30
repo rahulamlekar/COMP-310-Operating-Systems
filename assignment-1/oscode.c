@@ -285,7 +285,8 @@ int main()
         if (strcmp(args[0], "history") == 0) {
         	// Print out the history
         	print_history(command_history);
-        	command_buffer_push(&command_history, newline);
+			// Continue so that we don't trigger freecmd()
+        	continue;
         } else if (strcmp(args[0], "r") == 0) {
         	// We are using the history command!
         	if (!args[1]) {
@@ -314,8 +315,6 @@ int main()
 
         // Run a command
 		freecmd(args, &jobs, bg);
-
-        printf("\n");
     }
 }
 

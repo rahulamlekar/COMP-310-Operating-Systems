@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <errno.h>
 
 #define HISTORY_SIZE 10
 #define TEXT_INPUT_SIZE 20

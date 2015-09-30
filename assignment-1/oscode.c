@@ -86,11 +86,17 @@ void flush_completed_processes(pid_circular_buffer* buffer) {
 }
 
 void print_process_list(pid_circular_buffer buffer) {
+	printf("Jobs currently running:\n");
+	int totalJobs = 0;
 	int i;
 	for (i = 0; i < PROCESS_LIST_SIZE; i++) {
-		if (buffer.pids[i] >= 0) {
-			printf("Process %d running.\n", buffer.pids[i]);
+		if (buffer.pids[i] > 0) {
+			printf("Process %d.\n", buffer.pids[i]);
+			totalJobs++;
 		}
+	}
+	if (!totalJobs) {
+		printf("None.\n");
 	}
 }
 

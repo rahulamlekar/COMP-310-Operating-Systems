@@ -193,9 +193,13 @@ void freecmd(char* args[], pid_circular_buffer processes, int bg) {
 		char pwd[256];
 		printf("%s", getcwd(pwd, sizeof(pwd)));
 	} else if (strcmp(commandName, "fg") == 0) {
-		// TODO: Switch to a job
-		pid_t pid = atoi(args[1]);
-		waitpid(pid);
+		if (args[1]) {
+			// Switch to a job
+			pid_t pid = atoi(args[1]);
+			waitpid(pid);
+		} else {
+			printf("Please provide a process id argument for \"fg\"\n");
+		}
 	} else if (strcmp(commandName, "jobs") == 0) {
 		// Print the list of current jobs
     	flush_completed_processes(&processes);
@@ -205,7 +209,9 @@ void freecmd(char* args[], pid_circular_buffer processes, int bg) {
         pid_t childProcessId = fork();
     	if (!childProcessId) {
     		// This is the child, so execute the command
-    		execvp(commandName, args);
+    		if (execvp(commandName, args) == -1) {
+    			printf("Error running command %s.\n", commandName);
+    		}
     	} else {
     		// This is the parent, so wait for the child if necessary
             if (bg) {

@@ -190,9 +190,6 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
     printf("%s", prompt);
     length = getline(&line, &linecap, stdin);
 
-    // Copy the string out
-    strcpy(newline, line);
-
     if (length <= 0) {
         exit(-1);
     }
@@ -203,6 +200,9 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
         *loc = ' ';
     } else
         *background = 0;
+
+    // Copy the string out
+    strcpy(newline, line);
 
     // Parse the command to extract the argument array
     return parseCmd(line, args);

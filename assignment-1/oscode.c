@@ -1,3 +1,7 @@
+/**
+ * Andrew Fogarty - 260535895
+ */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <string.h>
@@ -10,7 +14,7 @@
 #define PROCESS_LIST_SIZE 6
 
 typedef struct command_circular_buffer {
-	char* commands[10];
+	char* commands[HISTORY_SIZE];
 	int index;
 	int size;
 	int totalCount;
@@ -40,9 +44,9 @@ void command_buffer_push(command_circular_buffer* buffer, char* command) {
 	// Decrement the buffer index
 	buffer->index = modular_decriment(buffer->index, buffer->size);
 	// Delete the current member
-	//free(buffer->commands[buffer->index]);
+	free(buffer->commands[buffer->index]);
 	// Copy the new string string
-	char* newCommand = (char *) malloc(sizeof(char) * (TEXT_INPUT_SIZE + 1));
+	char* newCommand = malloc(sizeof(char) * (TEXT_INPUT_SIZE + 1));
 	strcpy(newCommand, command);
 	buffer->commands[buffer->index] = newCommand;
 	// Increase the total count
@@ -58,7 +62,7 @@ char* command_buffer_scan(command_circular_buffer buffer, char c) {
 	int i;
 	for (i = 0; i < buffer.size; i++) {
 		// If the command starts with the string
-		if (buffer.commands[scanIndex][0] == c) {
+		if (buffer.commands[scanIndex] != NULL && buffer.commands[scanIndex][0] == c) {
 			return buffer.commands[scanIndex];
 		}
 		// Loop through buffer
@@ -209,14 +213,18 @@ int getcmd(char *prompt, char *args[], int *background, char* newline)
 }
 
 
-void freecmd(char* args[], pid_circular_buffer* processes, int bg) {
+void executeCommand(char* args[], pid_circular_buffer* processes, int bg, int* errorStatus) {
 	// Get the name of the command we will run
 	char* commandName = args[0];
 
 	// If the command is one of the default commands, run that
 	if (strcmp(commandName, "cd") == 0) {
 		// Change the current directory to the first argument
-		chdir(args[1]);
+		if (chdir(args[1]) == -1) {
+			// Handle error
+			printf("Please supply a valid path for \"cd\".\n");
+			*errorStatus = 1;
+		}
 	} else if (strcmp(commandName, "pwd") == 0) {
 		// Print the current directory
 		char pwd[256];
@@ -228,6 +236,7 @@ void freecmd(char* args[], pid_circular_buffer* processes, int bg) {
 			printf("Switching to process %d.\n", pid);
 			if (!waitpid(pid, NULL, 0)) {
 				printf("Error switching to process %d.\n", pid);
+				*errorStatus = 1;
 			}
 		} else {
 			printf("Please provide a process id argument for \"fg\"\n");
@@ -243,6 +252,7 @@ void freecmd(char* args[], pid_circular_buffer* processes, int bg) {
     		// This is the child, so execute the command
     		if (execvp(commandName, args) == -1) {
     			printf("Error running command %s.\n", commandName);
+    			*errorStatus = 1;
     		}
     	} else {
     		// This is the parent, so wait for the child if necessary
@@ -259,11 +269,17 @@ void freecmd(char* args[], pid_circular_buffer* processes, int bg) {
 }
 
 
+void freecmd() {
+	// This function wasn't necessary because all of my new strings are either
+	// freed in their respective functions or just exist on the stack.
+}
+
+
 int main()
 {
 	// The history of commands
 	command_circular_buffer command_history = {
-			{"", "", "", "", "", "", "", "", "", ""},
+			{NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL},
 			0,
 			10,
 			0
@@ -276,8 +292,12 @@ int main()
     char *args[20];
     int bg;
     char newline[20];
+    int doNotSaveToHistory = 0;
 
     while (1) {
+    	// If error status ever turns to 1, there is an error
+    	doNotSaveToHistory = 0;
+
     	// Reset args
     	loadArrayNull(args, 20);
 
@@ -293,8 +313,11 @@ int main()
         	// Print out the history
         	print_history(command_history);
 			// Continue so that we don't trigger freecmd()
+        	doNotSaveToHistory = 1;
         	continue;
         } else if (strcmp(args[0], "r") == 0) {
+        	// Don't save in history
+        	doNotSaveToHistory = 1;
         	// We are using the history command!
         	if (!args[1]) {
         		// No command given
@@ -315,13 +338,15 @@ int main()
             		parseCmd(historicCommand, args);
             	}
         	}
-        } else {
-        	// We're not using history, so add the input to the buffer
-        	command_buffer_push(&command_history, newline);
         }
 
         // Run a command
-		freecmd(args, &jobs, bg);
+		executeCommand(args, &jobs, bg, &doNotSaveToHistory);
+
+		// No error, so push to history
+    	if (!doNotSaveToHistory) {
+    		command_buffer_push(&command_history, newline);
+    	}
     }
 }
 

@@ -105,8 +105,6 @@ void flush_completed_processes(pid_circular_buffer* buffer) {
    			// The job has terminated, so remove it from the list
 			buffer->pids[i] = 0;
 	    }	
-		
- 		//printf("Test %d: %d %d\n", pid, test, processStatus);
 	}
 }
 

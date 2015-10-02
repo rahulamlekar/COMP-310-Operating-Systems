@@ -11,7 +11,7 @@
 
 #define HISTORY_SIZE 10
 #define TEXT_INPUT_SIZE 20
-#define PROCESS_LIST_SIZE 6
+#define PROCESS_LIST_SIZE 300
 
 typedef struct command_circular_buffer {
 	char* commands[HISTORY_SIZE];

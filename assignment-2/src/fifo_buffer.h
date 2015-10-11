@@ -1,3 +1,12 @@
+/*
+ * fifo_buffer.h
+ *
+ *      Author: Andrew Fogarty - 260535895
+ */
+
+#ifndef FIFO_BUFFER_H_
+#define FIFO_BUFFER_H_
+
 #include "print_job.h"
 
 
@@ -35,3 +44,6 @@ PrintJob* popFifoBuffer(FifoBuffer* buffer) {
 	return output;
 }
 
+
+
+#endif /* FIFO_BUFFER_H_ */

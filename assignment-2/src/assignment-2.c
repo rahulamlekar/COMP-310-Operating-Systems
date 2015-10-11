@@ -11,10 +11,17 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include "fifo_buffer.h"
-#include "print_job.h"
+#include "authentication.h"
+//#include "print_job.h"
+
+typedef struct shared_mem {
+	FifoBuffer buffer;
+} SharedMemory;
+
+SharedMemory* shared_mem;
 
 void setup_shared_mem() {
-
+	shared_mem = malloc(sizeof(SharedMemory));
 }
 
 void attach_shared_mem() {
@@ -40,9 +47,9 @@ void print_a_msg(PrintJob* job) {
  * Sleep for the duration of a job.
  */
 void go_sleep(PrintJob* job) {
-	printf("Starting to sleep.\n");
+	//printf("Starting to sleep.\n");
 	sleep(job->duration);
-	printf("Finished sleeping.\n");
+	//printf("Finished sleeping.\n");
 }
 
 int main(void) {
@@ -55,11 +62,11 @@ int main(void) {
 			0
 	};
 
-	while (1) {
+	//while (1) {
 		take_a_job(&job);  // this is blocking on a semaphore if no job
 		print_a_msg(&job); // duration of job, job ID, source of job are printed
 		go_sleep(&job);    // sleep for job duration
-	}
+	//}
 
 	return EXIT_SUCCESS;
 }

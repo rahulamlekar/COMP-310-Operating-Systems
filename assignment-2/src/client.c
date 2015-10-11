@@ -6,6 +6,7 @@
  */
 
 #include "fifo_buffer.h"
+#include "authentication.h"
 
 FifoBuffer* buffer;
 

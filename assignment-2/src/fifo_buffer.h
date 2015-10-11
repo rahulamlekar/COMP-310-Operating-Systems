@@ -1,14 +1,16 @@
+#include "print_job.h"
+
 
 #define BUFFER_SIZE 6
 
 typedef struct fifo_buffer {
-	int elements[BUFFER_SIZE];
+	PrintJob* elements[BUFFER_SIZE];
 	int elementFull[BUFFER_SIZE];
 	int headIndex;
 	int tailIndex;
 } FifoBuffer;
 
-int pushFifoBuffer(FifoBuffer* buffer, int newValue) {
+int pushFifoBuffer(FifoBuffer* buffer, PrintJob* newValue) {
 	if (!buffer->elementFull[buffer->tailIndex]) {
 		// We can proceed
 		buffer->elementFull[buffer->tailIndex] = 1;
@@ -22,9 +24,9 @@ int pushFifoBuffer(FifoBuffer* buffer, int newValue) {
 	return 0;
 }
 
-int popFifoBuffer(FifoBuffer* buffer) {
+PrintJob* popFifoBuffer(FifoBuffer* buffer) {
 	// Grab the element we will take
-	int output = buffer->elements[buffer->headIndex];
+	PrintJob* output = buffer->elements[buffer->headIndex];
 	// Mark it as empty
 	buffer->elementFull[buffer->headIndex] = 0;
 	// Move the index along

@@ -1,6 +1,6 @@
 all: 
-	gcc -o server.exe assignment-2.c
-	gcc -o client.exe client.c
+	gcc -o server.exe assignment-2.c -pthread
+	gcc -o client.exe client.c -pthread
 	
 clean:
 	rm server.exe

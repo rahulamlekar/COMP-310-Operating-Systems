@@ -10,11 +10,22 @@
 #include "fifo_buffer.h"
 #include "fifo_buffer_ops.h"
 #include "print_job.h"
+#include "shared_mem.h"
 
-FifoBuffer* buffer;
+// Necessary for shared mem
+#include <sys/ipc.h>
+#include <sys/shm.h>
+
+// POSIX semaphores
+#include <semaphore.h>
+
+SharedMemory* sharedMemory;
 
 void attach_share_mem() {
-	buffer = malloc(sizeof(FifoBuffer));
+	// Get the shmid of the desired shared memory
+	int shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), 0);
+	// Attach to the shared memory
+	shmat(shmid, sharedMemory, 0);
 }
 
 void place_params() {
@@ -40,7 +51,7 @@ void put_a_job(PrintJob* job) {
  * Release the shared memory
  */
 void release_share_mem() {
-
+	shmdt(sharedMemory);
 }
 
 int main() {

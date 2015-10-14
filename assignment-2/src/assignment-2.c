@@ -8,7 +8,10 @@
  ============================================================================
  */
 
+#include <stdio.h>
 #include <stdlib.h>
+
+// Custom code written by me
 #include "authentication.h"
 #include "fifo_buffer.h"
 #include "fifo_buffer_ops.h"
@@ -19,18 +22,46 @@
 #include <sys/ipc.h>
 #include <sys/shm.h>
 
-SharedMemory* shared_mem;
+// POSIX semaphores
+#include <semaphore.h>
+#include <errno.h>
 
+/**
+ * The id that we will use to access shared memory.
+ */
+int shmid;
+/**
+ * Pointer to the memory that is shared
+ */
+SharedMemory* sharedMemory;
+
+/**
+ * Create a shared memory segment
+ */
 void setup_shared_mem() {
-	shared_mem = malloc(sizeof(SharedMemory));
+	// Create some shared memory
+	shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), IPC_CREAT);
+	printf("Shmid: %d\n", shmid);
 }
 
+/**
+ * Attach the shared memory segment
+ */
 void attach_shared_mem() {
-
+	// Attach to the shared memory
+	sharedMemory = shmat(shmid, NULL, SHM_RND);
+	printf("Test: %d\n", (int) sharedMemory);
+	printf("Error: %d; %d; %d; %d; %d; %d\n", errno, EACCES, EIDRM, EINVAL, ENOMEM);
 }
 
+/**
+ * Initialize the semaphore and put it in shared memory.
+ */
 void init_semaphore() {
 
+	sharedMemory->semaphore = NULL;
+
+	//sem_init(sharedMemory->semaphore, 0, 0);
 }
 
 void take_a_job(PrintJob* job) {

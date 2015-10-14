@@ -9,9 +9,13 @@
 #define SHARED_MEM_H_
 
 #include "fifo_buffer.h"
+// POSIX semaphores
+#include <semaphore.h>
 
 typedef struct shared_mem {
 	FifoBuffer buffer;
+	sem_t* semaphore;
 } SharedMemory;
+
 
 #endif /* SHARED_MEM_H_ */

@@ -36,11 +36,14 @@ void put_a_job(PrintJob* job) {
 
 }
 
+/**
+ * Release the shared memory
+ */
 void release_share_mem() {
 
 }
 
-int clientMain() {
+int main() {
 	attach_share_mem();              // use the same key as the server so that the client can connect to the same memory segment
 	place_params();                 // this is to place the parameters in the shared memory – in particular the job queue and semaphore
 	get_job_params();              // read the terminal and get the job params

@@ -13,10 +13,11 @@
 #include "fifo_buffer.h"
 #include "fifo_buffer_ops.h"
 #include "print_job.h"
+#include "shared_mem.h"
 
-typedef struct shared_mem {
-	FifoBuffer buffer;
-} SharedMemory;
+// Necessary for shared mem
+#include <sys/ipc.h>
+#include <sys/shm.h>
 
 SharedMemory* shared_mem;
 

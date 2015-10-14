@@ -8,11 +8,11 @@
  ============================================================================
  */
 
-#include <stdio.h>
 #include <stdlib.h>
-#include "fifo_buffer.h"
 #include "authentication.h"
-//#include "print_job.h"
+#include "fifo_buffer.h"
+#include "fifo_buffer_ops.h"
+#include "print_job.h"
 
 typedef struct shared_mem {
 	FifoBuffer buffer;

@@ -1,16 +1,18 @@
 /*
  * fifo_buffer.h
  *
- *      Author: Andrew Fogarty - 260535895
+ *  Created on: Oct 13, 2015
+ *      Author: Andrew
  */
-
-#ifndef FIFO_BUFFER_H_
-#define FIFO_BUFFER_H_
 
 #include "print_job.h"
 
-
+#ifndef BUFFER_SIZE
 #define BUFFER_SIZE 6
+#endif
+
+#ifndef FIFO_BUFFER_H_
+#define FIFO_BUFFER_H_
 
 typedef struct fifo_buffer {
 	PrintJob* elements[BUFFER_SIZE];
@@ -18,32 +20,5 @@ typedef struct fifo_buffer {
 	int headIndex;
 	int tailIndex;
 } FifoBuffer;
-
-int pushFifoBuffer(FifoBuffer* buffer, PrintJob* newValue) {
-	if (!buffer->elementFull[buffer->tailIndex]) {
-		// We can proceed
-		buffer->elementFull[buffer->tailIndex] = 1;
-		buffer->elements[buffer->tailIndex] = newValue;
-		buffer->tailIndex = (buffer->tailIndex + 1) % BUFFER_SIZE;
-		// It worked!
-		return 1;
-	}
-
-	// It didn't work
-	return 0;
-}
-
-PrintJob* popFifoBuffer(FifoBuffer* buffer) {
-	// Grab the element we will take
-	PrintJob* output = buffer->elements[buffer->headIndex];
-	// Mark it as empty
-	buffer->elementFull[buffer->headIndex] = 0;
-	// Move the index along
-	buffer->headIndex = (buffer->headIndex + 1) % BUFFER_SIZE;
-	// Return the value
-	return output;
-}
-
-
 
 #endif /* FIFO_BUFFER_H_ */

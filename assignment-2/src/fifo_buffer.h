@@ -17,6 +17,7 @@
 typedef struct fifo_buffer {
 	PrintJob* elements[BUFFER_SIZE];
 	int elementFull[BUFFER_SIZE];
+	int numberOfMembers;
 	int headIndex;
 	int tailIndex;
 } FifoBuffer;

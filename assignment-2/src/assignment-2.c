@@ -45,7 +45,7 @@ SharedMemory* sharedMemory;
  * Helper functions
  */
 void print_error() {
-    printf("Error: %d\n", errno);
+    //printf("Error: %d\n", errno);
 }
 
 
@@ -53,12 +53,12 @@ void print_error() {
  * Create a shared memory segment
  */
 void setup_shared_mem() {
-    printf("Size: %d.\n", sizeof(SharedMemory));
+    //printf("Size: %d.\n", sizeof(SharedMemory));
     //printf("Min: %d.   Max: %d.\n", SHMMIN, SHMMAX);
 	// Create some shared memory
     // O77 sets the permissions
 	shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), 0777 | IPC_CREAT);
-	printf("Shmid: %d\n", shmid);
+	//printf("Shmid: %d\n", shmid);
     print_error();
 }
 
@@ -85,17 +85,27 @@ void init_semaphore() {
     //print_error();
 }
 
-void take_a_job(PrintJob* job) {
-    printf("Begin taking job.\n");
+void take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
+    //printf("Begin taking job.\n");
     // Wait or lock the semaphore
     sem_wait(&sharedMemory->semaphore);
     // CRITICAL SECTION BEGIN
-    printf("Server is in critical section.\n");
+    //printf("Server is in critical section.\n");
 
-    printf("Server is leaving critical section.\n");
+    if (!isBufferEmpty(&sharedMemory->buffer)) {
+        // The buffer is not empty, so let's take a job
+        printf("Latest Test: %p\n", popFifoBuffer(&sharedMemory->buffer));
+        // Copy the next print job off of the shared buffer
+        //copyPrintJob(popFifoBuffer(&sharedMemory->buffer), job);
+    } else {
+        // The buffer is empty, so we set a flag to continue
+        *bufferIsEmptyFlag = 1;
+    }
+
+    //printf("Server is leaving critical section.\n");
     // CRITICAL SECTION END
     sem_post(&sharedMemory->semaphore);
-    printf("End taking job.\n");
+    //printf("End taking job.\n");
 }
 
 /**
@@ -119,14 +129,22 @@ int main(void) {
 	attach_shared_mem();   // attach the shared memory segment
 	init_semaphore();      // initialize the semaphore and put it in shared memory
 
+    // An empty job schema that we will fill up to print
     PrintJob job = {
             0, 0, 0
     };
 
+    int bufferIsEmptyFlag = 0;
+
 	while (1) {
-		take_a_job(&job);  // this is blocking on a semaphore if no job
-		print_a_msg(&job); // duration of job, job ID, source of job are printed
-		go_sleep(&job);    // sleep for job duration
+		take_a_job(&job, &bufferIsEmptyFlag);  // this is blocking on a semaphore if no job
+        if (!bufferIsEmptyFlag) {
+            // We successfully retrieved a job
+            print_a_msg(&job); // duration of job, job ID, source of job are printed
+            go_sleep(&job);    // sleep for job duration
+        } else {
+            //printf("No job retrieved.  Continuing...");
+        }
 	}
 
 	return EXIT_SUCCESS;

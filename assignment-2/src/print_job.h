@@ -23,4 +23,14 @@ void printPrintJob(PrintJob job) {
     printf("Print Job { id: %d, pages: %d, duration: %d }\n", job.id, job.pagesToPrint, job.duration);
 }
 
+
+/**
+ * Copy a print job onto the stack.
+ */
+PrintJob copyPrintJob(PrintJob* oldJob, PrintJob* newJob) {
+    newJob->id = oldJob->id;
+    newJob->duration = oldJob->duration;
+    newJob->pagesToPrint = oldJob->pagesToPrint;
+}
+
 #endif /* PRINT_JOB_H_ */

@@ -30,8 +30,10 @@ unsigned int pagesToPrint = 0;
 void attach_share_mem() {
 	// Get the shmid of the desired shared memory
 	int shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), 0);
+    printf("Shmid: %d\n", shmid);
 	// Attach to the shared memory
-	shmat(shmid, sharedMemory, 0);
+	sharedMemory = shmat(shmid, sharedMemory, 0);
+    printf("SharedMemory: %p\n", sharedMemory);
 }
 
 
@@ -75,7 +77,17 @@ PrintJob create_job() {
 }
 
 void put_a_job(PrintJob* job) {
+    printf("Begin put_a_job\n");
+    printf("Semaphore: %p.\n", &sharedMemory->semaphore);
+    // Wait or lock the semaphore
+    sem_wait(&sharedMemory->semaphore);
+    // CRITICAL SECTION BEGIN
+    printf("Client inside critical section.\n");
+    //pushFifoBuffer(&sharedMemory->buffer, job);
 
+    // CRITICAL SECTION END
+    sem_post(&sharedMemory->semaphore);
+    printf("Client outside critical section.\n");
 }
 
 /**
@@ -92,7 +104,7 @@ int main() {
 	PrintJob job = create_job();  // create the job record
 	put_a_job(&job);             // put the job record into the shared buffer
 	release_share_mem();        // release the shared memory
-
+    printf("Client terminated.\n");
 	return 0;
 }
 

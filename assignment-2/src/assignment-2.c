@@ -46,7 +46,7 @@ SharedMemory* sharedMemory;
  */
 void setup_shared_mem() {
     printf("Size: %d.\n", sizeof(SharedMemory));
-    printf("Min: %d.   Max: %d.\n", SHMMIN, SHMMAX);
+    //printf("Min: %d.   Max: %d.\n", SHMMIN, SHMMAX);
 	// Create some shared memory
     // O77 sets the permissions
 	shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), 0777 | IPC_CREAT);
@@ -75,7 +75,7 @@ void init_semaphore() {
 	//sharedMemory->semaphore = NULL;
     //sharedMemory->buffer.headIndex = 7;
 
-	//sem_init(sharedMemory->semaphore, 1, 0);
+	sem_init(&sharedMemory->semaphore, 1, 0);
     //print_error();
 }
 

@@ -89,7 +89,7 @@ void print_error() {
  * Print the properties of a job.
  */
 void print_a_msg(PrintJob* job) {
-
+    printPrintJob(*job);
 }
 
 /**

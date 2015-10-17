@@ -14,7 +14,7 @@
 
 typedef struct shared_mem {
 	FifoBuffer buffer;
-	sem_t* semaphore;
+	sem_t semaphore;
 } SharedMemory;
 
 

@@ -4,12 +4,15 @@
  Author      : Andrew Fogarty - 260535895
  Version     :
  Copyright   : 
- Description : Hello World in C, Ansi-style
+ Description : Printer Spooler server
  ============================================================================
  */
 
 #include <stdio.h>
 #include <stdlib.h>
+
+// Sleep
+#include <unistd.h>
 
 // Custom code written by me
 #include "authentication.h"
@@ -19,12 +22,15 @@
 #include "shared_mem.h"
 
 // Necessary for shared mem
-#include <sys/ipc.h>
-#include <sys/shm.h>
+//#define _SVID_SOURCE
+#include<sys/types.h>
+#include<sys/ipc.h>
+#include<sys/shm.h>
 
 // POSIX semaphores
 #include <semaphore.h>
 #include <errno.h>
+
 
 /**
  * The id that we will use to access shared memory.
@@ -39,9 +45,13 @@ SharedMemory* sharedMemory;
  * Create a shared memory segment
  */
 void setup_shared_mem() {
+    printf("Size: %d.\n", sizeof(SharedMemory));
+    printf("Min: %d.   Max: %d.\n", SHMMIN, SHMMAX);
 	// Create some shared memory
-	shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), IPC_CREAT);
+    // O77 sets the permissions
+	shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), 0777 | IPC_CREAT);
 	printf("Shmid: %d\n", shmid);
+    print_error();
 }
 
 /**
@@ -49,24 +59,31 @@ void setup_shared_mem() {
  */
 void attach_shared_mem() {
 	// Attach to the shared memory
-	sharedMemory = shmat(shmid, NULL, SHM_RND);
+	sharedMemory = (void *) shmat(shmid, NULL, 0);
 	printf("Test: %d\n", (int) sharedMemory);
-	printf("Error: %d; %d; %d; %d; %d; %d\n", errno, EACCES, EIDRM, EINVAL, ENOMEM);
+    //printf("Error: %d; %d; %d; %d; %d\n", errno, EACCES, EIDRM, EINVAL, ENOMEM);
+}
+
+void take_a_job(PrintJob* job) {
+
 }
 
 /**
  * Initialize the semaphore and put it in shared memory.
  */
 void init_semaphore() {
+	//sharedMemory->semaphore = NULL;
+    //sharedMemory->buffer.headIndex = 7;
 
-	sharedMemory->semaphore = NULL;
-
-	//sem_init(sharedMemory->semaphore, 0, 0);
+	//sem_init(sharedMemory->semaphore, 1, 0);
+    //print_error();
 }
 
-void take_a_job(PrintJob* job) {
-
+void print_error() {
+    printf("Error: %d\n", errno);
 }
+
+
 
 /**
  * Print the properties of a job.

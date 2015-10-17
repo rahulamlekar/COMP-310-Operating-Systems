@@ -41,6 +41,14 @@ int shmid;
  */
 SharedMemory* sharedMemory;
 
+/*
+ * Helper functions
+ */
+void print_error() {
+    printf("Error: %d\n", errno);
+}
+
+
 /**
  * Create a shared memory segment
  */
@@ -64,26 +72,31 @@ void attach_shared_mem() {
     //printf("Error: %d; %d; %d; %d; %d\n", errno, EACCES, EIDRM, EINVAL, ENOMEM);
 }
 
-void take_a_job(PrintJob* job) {
-
-}
-
 /**
  * Initialize the semaphore and put it in shared memory.
  */
 void init_semaphore() {
-	//sharedMemory->semaphore = NULL;
-    //sharedMemory->buffer.headIndex = 7;
-
-	sem_init(&sharedMemory->semaphore, 1, 0);
+    // Initialize the semaphore
+	sem_init(
+            &sharedMemory->semaphore,
+            1, // 1 indicates that the semaphore will be shared between processes
+            1  // Default value is 1 (open)
+    );
     //print_error();
 }
 
-void print_error() {
-    printf("Error: %d\n", errno);
+void take_a_job(PrintJob* job) {
+    printf("Begin taking job.\n");
+    // Wait or lock the semaphore
+    sem_wait(&sharedMemory->semaphore);
+    // CRITICAL SECTION BEGIN
+    printf("Server is in critical section.\n");
+
+    printf("Server is leaving critical section.\n");
+    // CRITICAL SECTION END
+    sem_post(&sharedMemory->semaphore);
+    printf("End taking job.\n");
 }
-
-
 
 /**
  * Print the properties of a job.
@@ -106,16 +119,15 @@ int main(void) {
 	attach_shared_mem();   // attach the shared memory segment
 	init_semaphore();      // initialize the semaphore and put it in shared memory
 
-	PrintJob job = {
-			0,
-			0
-	};
+    PrintJob job = {
+            0, 0, 0
+    };
 
-	//while (1) {
+	while (1) {
 		take_a_job(&job);  // this is blocking on a semaphore if no job
 		print_a_msg(&job); // duration of job, job ID, source of job are printed
 		go_sleep(&job);    // sleep for job duration
-	//}
+	}
 
 	return EXIT_SUCCESS;
 }

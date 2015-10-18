@@ -89,7 +89,7 @@ void init_semaphore() {
     sem_init(
             &sharedMemory->full,
             1,
-            0
+            1
     );
     //print_error();
 }
@@ -105,10 +105,11 @@ void take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
         //printf("Latest Test: %p\n", popFifoBuffer(&sharedMemory->buffer));
         // Copy the next print job off of the shared buffer
     // Get the job object in shared memory
-    PrintJob* sharedMemJob = popFifoBuffer(&sharedMemory->buffer);
-    printf("Latest Test: %p\n", sharedMemJob);
+    PrintJob sharedMemJob = popFifoBuffer(&sharedMemory->buffer);
 
+    printf("Latest Test: %d\n", sharedMemJob.duration);
 
+    printPrintJob(sharedMemJob);
     //copyPrintJob(sharedMemJob, job);
 
     printf("Server is leaving critical section.\n");
@@ -118,24 +119,25 @@ void take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
     //printf("End taking job.\n");
 }
 
-/**
- * Print the properties of a job.
- */
-void print_a_msg(PrintJob* job) {
-    printPrintJob(*job);
-}
+///**
+// * Print the properties of a job.
+// */
+//void print_a_msg(PrintJob* job) {
+//    printPrintJob(*job);
+//}
 
 /**
  * Sleep for the duration of a job.
  */
 void go_sleep(PrintJob* job) {
-    printf("Printer 0 starts printing 8 pages from Buffer[1]");
+    printf("Printer 0 starts printing %d pages from Buffer[%d]", job->pagesToPrint, sharedMemory->buffer.lastPoppedIndex);
 	//printf("Starting to sleep.\n");
-	sleep(job->duration);
+	//sleep(job->duration);
+    sleep(15);
 	//printf("Finished sleeping.\n");
 }
 
-int main(void) {
+int main(int argc, char *argv[]) {
 	setup_shared_mem();    // create a shared memory segment
 	attach_shared_mem();   // attach the shared memory segment
 	init_semaphore();      // initialize the semaphore and put it in shared memory
@@ -149,7 +151,7 @@ int main(void) {
 
 	while (1) {
 		take_a_job(&job, &bufferIsEmptyFlag);  // this is blocking on a semaphore if no job
-        print_a_msg(&job); // duration of job, job ID, source of job are printed
+       // print_a_msg(&job); // duration of job, job ID, source of job are printed
         go_sleep(&job);    // sleep for job duration
 	}
 

@@ -18,25 +18,22 @@ int isBufferFull(FifoBuffer* buffer) {
     return buffer->numberOfMembers >= BUFFER_SIZE;
 }
 
-int pushFifoBuffer(FifoBuffer* buffer, PrintJob* newValue) {
-    if (!buffer->elementFull[buffer->tailIndex]) {
-        // We can proceed
-        buffer->elementFull[buffer->tailIndex] = 1;
-        buffer->elements[buffer->tailIndex] = newValue;
-        buffer->tailIndex = (buffer->tailIndex + 1) % BUFFER_SIZE;
-        // Increase the number of members
-        buffer->numberOfMembers++;
-        // It worked!
-        return 1;
-    }
+void pushFifoBuffer(FifoBuffer* buffer, PrintJob newValue) {
+    buffer->elementFull[buffer->tailIndex] = 1;
+    buffer->elements[buffer->tailIndex] = newValue;
+    // Copy new job values
+    buffer->elements[buffer->tailIndex].duration = newValue.duration;
+    buffer->elements[buffer->tailIndex].pagesToPrint = newValue.pagesToPrint;
+    buffer->elements[buffer->tailIndex].id = newValue.id;
 
-    // It didn't work
-    return 0;
+    buffer->tailIndex = (buffer->tailIndex + 1) % BUFFER_SIZE;
+    // Increase the number of members
+    buffer->numberOfMembers++;
 }
 
-PrintJob* popFifoBuffer(FifoBuffer* buffer) {
+PrintJob popFifoBuffer(FifoBuffer* buffer) {
     // Grab the element we will take
-    PrintJob* output = buffer->elements[buffer->headIndex];
+    PrintJob output = buffer->elements[buffer->headIndex];
     buffer->lastPoppedIndex = buffer->headIndex;
     // Mark it as empty
     buffer->elementFull[buffer->headIndex] = 0;

@@ -15,7 +15,7 @@
 #define FIFO_BUFFER_H_
 
 typedef struct fifo_buffer {
-	PrintJob* elements[BUFFER_SIZE];
+	PrintJob elements[BUFFER_SIZE];
 	int elementFull[BUFFER_SIZE];
 	int numberOfMembers;
 	int headIndex;

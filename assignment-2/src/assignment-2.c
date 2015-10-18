@@ -53,6 +53,8 @@ void print_error() {
  * Create a shared memory segment
  */
 void setup_shared_mem() {
+    // TODO: Nuke pre-existing shared memory
+
     //printf("Size: %d.\n", sizeof(SharedMemory));
     //printf("Min: %d.   Max: %d.\n", SHMMIN, SHMMAX);
 	// Create some shared memory
@@ -70,6 +72,10 @@ void attach_shared_mem() {
 	sharedMemory = (void *) shmat(shmid, NULL, 0);
 	printf("Test: %d\n", (int) sharedMemory);
     //printf("Error: %d; %d; %d; %d; %d\n", errno, EACCES, EIDRM, EINVAL, ENOMEM);
+
+    // Reset the values
+    sharedMemory->buffer.headIndex = 0;
+    sharedMemory->buffer.tailIndex = 0;
 }
 
 /**

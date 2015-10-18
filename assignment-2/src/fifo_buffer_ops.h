@@ -15,7 +15,7 @@ int isBufferEmpty(FifoBuffer* buffer) {
 }
 
 int isBufferFull(FifoBuffer* buffer) {
-
+    return buffer->numberOfMembers >= BUFFER_SIZE;
 }
 
 int pushFifoBuffer(FifoBuffer* buffer, PrintJob* newValue) {
@@ -24,6 +24,8 @@ int pushFifoBuffer(FifoBuffer* buffer, PrintJob* newValue) {
         buffer->elementFull[buffer->tailIndex] = 1;
         buffer->elements[buffer->tailIndex] = newValue;
         buffer->tailIndex = (buffer->tailIndex + 1) % BUFFER_SIZE;
+        // Increase the number of members
+        buffer->numberOfMembers++;
         // It worked!
         return 1;
     }
@@ -35,10 +37,13 @@ int pushFifoBuffer(FifoBuffer* buffer, PrintJob* newValue) {
 PrintJob* popFifoBuffer(FifoBuffer* buffer) {
     // Grab the element we will take
     PrintJob* output = buffer->elements[buffer->headIndex];
+    buffer->lastPoppedIndex = buffer->headIndex;
     // Mark it as empty
     buffer->elementFull[buffer->headIndex] = 0;
     // Move the index along
     buffer->headIndex = (buffer->headIndex + 1) % BUFFER_SIZE;
+    // Decrease the number of members
+    buffer->numberOfMembers--;
     // Return the value
     return output;
 }

@@ -83,7 +83,9 @@ void put_a_job(PrintJob* job) {
     sem_wait(&sharedMemory->semaphore);
     // CRITICAL SECTION BEGIN
     printf("Client inside critical section.\n");
-    //pushFifoBuffer(&sharedMemory->buffer, job);
+
+    // Add the job to the buffer.
+    pushFifoBuffer(&sharedMemory->buffer, job);
 
     // CRITICAL SECTION END
     sem_post(&sharedMemory->semaphore);

@@ -20,6 +20,7 @@ typedef struct fifo_buffer {
 	int numberOfMembers;
 	int headIndex;
 	int tailIndex;
+    int lastPoppedIndex;
 } FifoBuffer;
 
 #endif /* FIFO_BUFFER_H_ */

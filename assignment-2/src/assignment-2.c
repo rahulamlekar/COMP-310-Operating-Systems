@@ -97,6 +97,7 @@ void take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
         printf("Latest Test: %p\n", popFifoBuffer(&sharedMemory->buffer));
         // Copy the next print job off of the shared buffer
         //copyPrintJob(popFifoBuffer(&sharedMemory->buffer), job);
+        *bufferIsEmptyFlag = 0;
     } else {
         // The buffer is empty, so we set a flag to continue
         *bufferIsEmptyFlag = 1;

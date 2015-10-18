@@ -76,36 +76,45 @@ void attach_shared_mem() {
  * Initialize the semaphore and put it in shared memory.
  */
 void init_semaphore() {
-    // Initialize the semaphore
+    sem_init(
+            &sharedMemory->mutex,
+            1, // Inter-process
+            1 // Start at 1
+    );
 	sem_init(
-            &sharedMemory->semaphore,
-            1, // 1 indicates that the semaphore will be shared between processes
-            1  // Default value is 1 (open)
+            &sharedMemory->empty,
+            1,
+            1 - BUFFER_SIZE
+    );
+    sem_init(
+            &sharedMemory->full,
+            1,
+            0
     );
     //print_error();
 }
 
 void take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
-    //printf("Begin taking job.\n");
+    printf("Begin taking job.\n");
     // Wait or lock the semaphore
-    sem_wait(&sharedMemory->semaphore);
+    sem_wait(&sharedMemory->full);
+    printf("Server past full.\n");
+    sem_wait(&sharedMemory->mutex);
     // CRITICAL SECTION BEGIN
-    //printf("Server is in critical section.\n");
-
-    if (!isBufferEmpty(&sharedMemory->buffer)) {
-        // The buffer is not empty, so let's take a job
-        printf("Latest Test: %p\n", popFifoBuffer(&sharedMemory->buffer));
+    printf("Server is in critical section.\n");
+        //printf("Latest Test: %p\n", popFifoBuffer(&sharedMemory->buffer));
         // Copy the next print job off of the shared buffer
-        //copyPrintJob(popFifoBuffer(&sharedMemory->buffer), job);
-        *bufferIsEmptyFlag = 0;
-    } else {
-        // The buffer is empty, so we set a flag to continue
-        *bufferIsEmptyFlag = 1;
-    }
+    // Get the job object in shared memory
+    PrintJob* sharedMemJob = popFifoBuffer(&sharedMemory->buffer);
+    printf("Latest Test: %p\n", sharedMemJob);
 
-    //printf("Server is leaving critical section.\n");
+
+    //copyPrintJob(sharedMemJob, job);
+
+    printf("Server is leaving critical section.\n");
     // CRITICAL SECTION END
-    sem_post(&sharedMemory->semaphore);
+    sem_post(&sharedMemory->mutex);
+    sem_post(&sharedMemory->empty);
     //printf("End taking job.\n");
 }
 
@@ -120,6 +129,7 @@ void print_a_msg(PrintJob* job) {
  * Sleep for the duration of a job.
  */
 void go_sleep(PrintJob* job) {
+    printf("Printer 0 starts printing 8 pages from Buffer[1]");
 	//printf("Starting to sleep.\n");
 	sleep(job->duration);
 	//printf("Finished sleeping.\n");
@@ -139,13 +149,8 @@ int main(void) {
 
 	while (1) {
 		take_a_job(&job, &bufferIsEmptyFlag);  // this is blocking on a semaphore if no job
-        if (!bufferIsEmptyFlag) {
-            // We successfully retrieved a job
-            print_a_msg(&job); // duration of job, job ID, source of job are printed
-            go_sleep(&job);    // sleep for job duration
-        } else {
-            //printf("No job retrieved.  Continuing...");
-        }
+        print_a_msg(&job); // duration of job, job ID, source of job are printed
+        go_sleep(&job);    // sleep for job duration
 	}
 
 	return EXIT_SUCCESS;

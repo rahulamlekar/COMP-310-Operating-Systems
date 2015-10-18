@@ -78,9 +78,11 @@ PrintJob create_job() {
 
 void put_a_job(PrintJob* job) {
     printf("Begin put_a_job\n");
-    printf("Semaphore: %p.\n", &sharedMemory->semaphore);
     // Wait or lock the semaphore
-    sem_wait(&sharedMemory->semaphore);
+    sem_wait(&sharedMemory->empty);
+    printf("Past empty semaphore\n");
+    sem_wait(&sharedMemory->mutex);
+    printf("Past mutex semaphore.\n");
     // CRITICAL SECTION BEGIN
     printf("Client inside critical section.\n");
 
@@ -88,7 +90,8 @@ void put_a_job(PrintJob* job) {
     pushFifoBuffer(&sharedMemory->buffer, job);
 
     // CRITICAL SECTION END
-    sem_post(&sharedMemory->semaphore);
+    sem_post(&sharedMemory->mutex);
+    sem_post(&sharedMemory->full);
     printf("Client outside critical section.\n");
 }
 

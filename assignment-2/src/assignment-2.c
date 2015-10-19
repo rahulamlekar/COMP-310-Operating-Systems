@@ -92,7 +92,7 @@ void init_semaphore() {
 	sem_init(
             &sharedMemory->empty,
             1,
-            1 - BUFFER_SIZE
+            BUFFER_SIZE
     );
     sem_init(
             &sharedMemory->full,
@@ -102,21 +102,26 @@ void init_semaphore() {
     //print_error();
 }
 
-void take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
+int take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
     int neededToSleep;
     // Wait or lock the semaphore
-    if (sem_trywait(&sharedMemory->full) == 0) {
-        // It worked, we will continue
-        neededToSleep = 0;
-    } else {
-        // The buffer is empty, so we will print a message and then wait
-        printf("No request in buffer, Printer 0 sleeps\n");
-        neededToSleep = 1;
-        // Actually wait
+//    if (sem_trywait(&sharedMemory->full) == 0) {
+//        // It worked, we will continue
+//        neededToSleep = 0;
+//    } else {
+//        // The buffer is empty, so we will print a message and then wait
+//        printf("No request in buffer, Printer 0 sleeps\n");
+//        neededToSleep = 1;
+//        // Actually wait
         sem_wait(&sharedMemory->full);
-    }
+//    }
     sem_wait(&sharedMemory->mutex);
     // CRITICAL SECTION BEGIN
+
+    // Get the index that we will pop from
+    int output = sharedMemory->buffer.headIndex;
+
+    printf("TEST: %d\n", output);
 
     // Pop the job off the buffer
     PrintJob sharedMemJob = popFifoBuffer(&sharedMemory->buffer);
@@ -126,18 +131,21 @@ void take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
     // CRITICAL SECTION END
     sem_post(&sharedMemory->mutex);
     sem_post(&sharedMemory->empty);
+
+    // Return the index of the job from the buffer
+    return output;
 }
 
 /**
  * Sleep for the duration of a job.
  */
-void go_sleep(PrintJob* job) {
+void go_sleep(PrintJob* job, int bufferIndex) {
     // Let the user know that we are starting to sleep
-    printf("Printer 0 starts printing %d pages from Buffer[%d]\n", job->pagesToPrint, sharedMemory->buffer.lastPoppedIndex);
+    printf("Printer 0 starts printing %d pages from Buffer[%d]\n", job->pagesToPrint, bufferIndex);
     // If we don't flush the buffer, then the print doesn't happen before the sleep
     fflush(stdout);
     sleep(job->duration);
-    printf("Printer 0 finishes printing %d pages from Buffer[%d]\n", job->pagesToPrint, sharedMemory->buffer.lastPoppedIndex);
+    printf("Printer 0 finishes printing %d pages from Buffer[%d]\n", job->pagesToPrint, bufferIndex);
 
 }
 
@@ -154,8 +162,9 @@ int main(int argc, char *argv[]) {
     int bufferIsEmptyFlag = 0;
 
 	while (1) {
-		take_a_job(&job, &bufferIsEmptyFlag);  // this is blocking on a semaphore if no job
-        go_sleep(&job);    // sleep for job duration
+        int bufferIndex;
+		bufferIndex = take_a_job(&job, &bufferIsEmptyFlag);  // this is blocking on a semaphore if no job
+        go_sleep(&job, bufferIndex);    // sleep for job duration
 	}
 
 	return EXIT_SUCCESS;

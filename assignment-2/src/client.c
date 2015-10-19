@@ -44,33 +44,32 @@ PrintJob create_job(int id, int numPages, int duration) {
 
 void put_a_job(SharedMemory* memory, PrintJob job) {
     int neededToSleep;
-    // Wait or lock the semaphore
-    if(sem_trywait(&memory->empty) == 0) {
-        // We got through, continue
-        neededToSleep = 0;
-    } else {
-        neededToSleep = 1;
-        // Let the user know that we are waiting
-        printf("Client %d has %d pages to print, buffer full, sleeps\n", job.id, job.pagesToPrint);
-        // Wait
-        sem_wait(&memory->empty);
+    int complete = 0;
+
+    while (!complete) {
+        sem_wait(&memory->mutex);
+
+        // Wait or lock the semaphore
+        if(sem_trywait(&memory->empty) == 0) {
+            // We got through, continue
+            printf("Client %d has %d pages to print, puts request in Buffer[%d]\n", job.id, job.pagesToPrint, memory->buffer.tailIndex);
+
+            // Add the job to the buffer.
+            pushFifoBuffer(&memory->buffer, job);
+
+            // CRITICAL SECTION END
+
+            sem_post(&memory->full);
+            complete = 1;
+        } else {
+    //        // Let the user know that we are waiting
+    //        printf("Client %d has %d pages to print, buffer full, sleeps\n", job.id, job.pagesToPrint);
+    //        // Wait
+    //        //sem_wait(&memory->empty);
+        }
+        sem_post(&memory->mutex);
+
     }
-    sem_wait(&memory->mutex);
-    // CRITICAL SECTION BEGIN
-
-    // Let the user know what has happened
-    if (neededToSleep) {
-        printf("Client %d wakes up, puts request in Buffer[%d]\n", job.id, memory->buffer.tailIndex);
-    } else {
-        printf("Client %d has %d pages to print, puts request in Buffer[%d]\n", job.id, job.pagesToPrint, memory->buffer.tailIndex);
-    }
-
-    // Add the job to the buffer.
-    pushFifoBuffer(&memory->buffer, job);
-
-    // CRITICAL SECTION END
-    sem_post(&memory->mutex);
-    sem_post(&memory->full);
 }
 
 /**

@@ -1,5 +1,5 @@
 # Boot up the server
-./server.exe &
+#./server.exe &
 
 # Boot up some clients
 ./client.exe 1 2 3 &

@@ -83,8 +83,11 @@ void put_a_job(SharedMemory* memory, PrintJob job) {
 //
 //    }
 
+    int didWait = 0;
+
     if (willSemaphoreWait(&memory->empty)) {
         printf("Client %d has %d pages to print, buffer full, sleeps\n", job.id, job.pagesToPrint);
+        didWait = 1;
     }
 
     sem_wait(&memory->empty);
@@ -92,7 +95,11 @@ void put_a_job(SharedMemory* memory, PrintJob job) {
     // Critical section
 
     // Let the user know what has happened
-    printf("Client %d has %d pages to print, puts request in Buffer[%d]\n", job.id, job.pagesToPrint, memory->buffer.tailIndex);
+    if (didWait) {
+        printf("Client %d wakes up, puts request in Buffer[%d]\n", job.id, memory->buffer.tailIndex);
+    } else {
+        printf("Client %d has %d pages to print, puts request in Buffer[%d]\n", job.id, job.pagesToPrint, memory->buffer.tailIndex);
+    }
 
     // Add the job to the buffer.
     pushFifoBuffer(&memory->buffer, job);

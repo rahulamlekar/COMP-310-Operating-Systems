@@ -1,5 +1,8 @@
 # Boot up the server
-#./server.exe &
+./server.exe &
+
+# Make sure server has booted
+sleep 3
 
 # Boot up some clients
 ./client.exe 1 2 3 &

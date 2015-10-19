@@ -19,5 +19,14 @@ typedef struct shared_mem {
 	sem_t full;
 } SharedMemory;
 
+/**
+ * Return 1 if semaphore will wait.  0 if not.
+ */
+int willSemaphoreWait(sem_t* semaphore) {
+	int semaphoreValue;
+	sem_getvalue(semaphore, &semaphoreValue);
+	return semaphoreValue < 1;
+}
+
 
 #endif /* SHARED_MEM_H_ */

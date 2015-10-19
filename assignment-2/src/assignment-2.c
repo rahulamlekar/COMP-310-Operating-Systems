@@ -103,25 +103,18 @@ void init_semaphore() {
 }
 
 int take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
-    int neededToSleep;
-    // Wait or lock the semaphore
-//    if (sem_trywait(&sharedMemory->full) == 0) {
-//        // It worked, we will continue
-//        neededToSleep = 0;
-//    } else {
-//        // The buffer is empty, so we will print a message and then wait
-//        printf("No request in buffer, Printer 0 sleeps\n");
-//        neededToSleep = 1;
-//        // Actually wait
-        sem_wait(&sharedMemory->full);
-//    }
+
+    // Let the user know if the printer is going to be sleeping
+    if (willSemaphoreWait(&sharedMemory->full)) {
+        printf("No request in buffer, Printer 0 sleeps\n");
+    }
+    // Actually wait
+    sem_wait(&sharedMemory->full);
     sem_wait(&sharedMemory->mutex);
     // CRITICAL SECTION BEGIN
 
     // Get the index that we will pop from
     int output = sharedMemory->buffer.headIndex;
-
-    printf("TEST: %d\n", output);
 
     // Pop the job off the buffer
     PrintJob sharedMemJob = popFifoBuffer(&sharedMemory->buffer);

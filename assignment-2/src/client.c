@@ -29,9 +29,9 @@
 /**
  * Attach to the shared memory created by the server.
  */
-SharedMemory* attach_share_mem() {
+SharedMemory* attach_share_mem(int printerId) {
 	// Get the shmid of the desired shared memory
-	int shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), 0);
+	int shmid = shmget(SHARED_MEM_KEY + printerId, sizeof(SharedMemory), 0);
 	// Attach to the shared memory
     SharedMemory* output = NULL;
 	output = shmat(shmid, output, 0);
@@ -117,17 +117,18 @@ void release_share_mem(SharedMemory* sharedMemory) {
 }
 
 int main(int argc, char* argv[]) {
-    if (argc < 3) {
-        printf("Please provide clientId, numPages, and duration arguments!\n");
+    if (argc < 4) {
+        printf("Please provide clientId, printerId, numPages, and duration arguments!\n");
         return EXIT_FAILURE;
     }
 
     // Get the client params
     int clientId = atoi(argv[1]);
-    int numPages = atoi(argv[2]);
-    int duration = atoi(argv[3]);
+    int printerId = atoi(argv[2]);
+    int numPages = atoi(argv[3]);
+    int duration = atoi(argv[4]);
 
-	SharedMemory* sharedMemory = attach_share_mem();              // use the same key as the server so that the client can connect to the same memory segment
+	SharedMemory* sharedMemory = attach_share_mem(printerId);              // use the same key as the server so that the client can connect to the same memory segment
 
 	PrintJob job = create_job(clientId, numPages, duration);  // create the job record
 	put_a_job(sharedMemory, job);             // put the job record into the shared buffer

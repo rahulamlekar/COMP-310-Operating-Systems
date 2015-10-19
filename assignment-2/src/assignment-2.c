@@ -45,11 +45,10 @@ SharedMemory* sharedMemory;
 /**
  * Create a shared memory segment
  */
-void setup_shared_mem() {
-    // TODO: Nuke pre-existing shared memory
+void setup_shared_mem(int printerId) {
 	// Create some shared memory
     // O77 sets the permissions
-	shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), 0777 | IPC_CREAT);
+	shmid = shmget(SHARED_MEM_KEY + printerId, sizeof(SharedMemory), 0777 | IPC_CREAT);
 }
 
 /**
@@ -64,7 +63,6 @@ void attach_shared_mem() {
     // Reset the values
     buffer->headIndex = 0;
     buffer->tailIndex = 0;
-
     int i;
     for (i = 0; i < BUFFER_SIZE; i++) {
         PrintJob* current;
@@ -102,11 +100,11 @@ void init_semaphore() {
     //print_error();
 }
 
-int take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
+int take_a_job(PrintJob* job, int* bufferIsEmptyFlag, int printerId) {
 
     // Let the user know if the printer is going to be sleeping
     if (willSemaphoreWait(&sharedMemory->full)) {
-        printf("No request in buffer, Printer 0 sleeps\n");
+        printf("No request in buffer, Printer %d sleeps\n", printerId);
     }
     // Actually wait
     sem_wait(&sharedMemory->full);
@@ -132,18 +130,26 @@ int take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
 /**
  * Sleep for the duration of a job.
  */
-void go_sleep(PrintJob* job, int bufferIndex) {
+void go_sleep(PrintJob* job, int bufferIndex, int printerId) {
     // Let the user know that we are starting to sleep
-    printf("Printer 0 starts printing %d pages from Buffer[%d]\n", job->pagesToPrint, bufferIndex);
+    printf("Printer %d starts printing %d pages from Buffer[%d]\n", printerId, job->pagesToPrint, bufferIndex);
     // If we don't flush the buffer, then the print doesn't happen before the sleep
     fflush(stdout);
     sleep(job->duration);
-    printf("Printer 0 finishes printing %d pages from Buffer[%d]\n", job->pagesToPrint, bufferIndex);
+    printf("Printer %d finishes printing %d pages from Buffer[%d]\n", printerId, job->pagesToPrint, bufferIndex);
 
 }
 
 int main(int argc, char *argv[]) {
-	setup_shared_mem();    // create a shared memory segment
+    if (argc < 1) {
+        printf("Please provide printerId argument!\n");
+        return EXIT_FAILURE;
+    }
+
+    // Get the printer params
+    int printerId = atoi(argv[1]);
+
+	setup_shared_mem(printerId);    // create a shared memory segment
 	attach_shared_mem();   // attach the shared memory segment
 	init_semaphore();      // initialize the semaphore and put it in shared memory
 
@@ -156,8 +162,8 @@ int main(int argc, char *argv[]) {
 
 	while (1) {
         int bufferIndex;
-		bufferIndex = take_a_job(&job, &bufferIsEmptyFlag);  // this is blocking on a semaphore if no job
-        go_sleep(&job, bufferIndex);    // sleep for job duration
+		bufferIndex = take_a_job(&job, &bufferIsEmptyFlag, printerId);  // this is blocking on a semaphore if no job
+        go_sleep(&job, bufferIndex, printerId);    // sleep for job duration
 	}
 
 	return EXIT_SUCCESS;

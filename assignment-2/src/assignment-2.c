@@ -41,27 +41,15 @@ int shmid;
  */
 SharedMemory* sharedMemory;
 
-/*
- * Helper functions
- */
-void print_error() {
-    //printf("Error: %d\n", errno);
-}
-
 
 /**
  * Create a shared memory segment
  */
 void setup_shared_mem() {
     // TODO: Nuke pre-existing shared memory
-
-    //printf("Size: %d.\n", sizeof(SharedMemory));
-    //printf("Min: %d.   Max: %d.\n", SHMMIN, SHMMAX);
 	// Create some shared memory
     // O77 sets the permissions
 	shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), 0777 | IPC_CREAT);
-	//printf("Shmid: %d\n", shmid);
-    print_error();
 }
 
 /**
@@ -70,18 +58,32 @@ void setup_shared_mem() {
 void attach_shared_mem() {
 	// Attach to the shared memory
 	sharedMemory = (void *) shmat(shmid, NULL, 0);
-	printf("Test: %d\n", (int) sharedMemory);
-    //printf("Error: %d; %d; %d; %d; %d\n", errno, EACCES, EIDRM, EINVAL, ENOMEM);
+
+    FifoBuffer* buffer = &sharedMemory->buffer;
 
     // Reset the values
-    sharedMemory->buffer.headIndex = 0;
-    sharedMemory->buffer.tailIndex = 0;
+    buffer->headIndex = 0;
+    buffer->tailIndex = 0;
+
+    int i;
+    for (i = 0; i < BUFFER_SIZE; i++) {
+        PrintJob* current;
+        current = &sharedMemory->buffer.elements[i];
+        current->id = 0;
+        current->duration = 0;
+        current->pagesToPrint = 0;
+    }
 }
 
 /**
  * Initialize the semaphore and put it in shared memory.
  */
 void init_semaphore() {
+    // Destroy previously existing semaphores
+    sem_destroy(&sharedMemory->mutex);
+    sem_destroy(&sharedMemory->empty);
+    sem_destroy(&sharedMemory->full);
+
     sem_init(
             &sharedMemory->mutex,
             1, // Inter-process
@@ -95,52 +97,48 @@ void init_semaphore() {
     sem_init(
             &sharedMemory->full,
             1,
-            1
+            0
     );
     //print_error();
 }
 
 void take_a_job(PrintJob* job, int* bufferIsEmptyFlag) {
-    printf("Begin taking job.\n");
+    int neededToSleep;
     // Wait or lock the semaphore
-    sem_wait(&sharedMemory->full);
-    printf("Server past full.\n");
+    if (sem_trywait(&sharedMemory->full) == 0) {
+        // It worked, we will continue
+        neededToSleep = 0;
+    } else {
+        // The buffer is empty, so we will print a message and then wait
+        printf("No request in buffer, Printer 0 sleeps\n");
+        neededToSleep = 1;
+        // Actually wait
+        sem_wait(&sharedMemory->full);
+    }
     sem_wait(&sharedMemory->mutex);
     // CRITICAL SECTION BEGIN
-    printf("Server is in critical section.\n");
-        //printf("Latest Test: %p\n", popFifoBuffer(&sharedMemory->buffer));
-        // Copy the next print job off of the shared buffer
-    // Get the job object in shared memory
+
+    // Pop the job off the buffer
     PrintJob sharedMemJob = popFifoBuffer(&sharedMemory->buffer);
 
-    printf("Latest Test: %d\n", sharedMemJob.duration);
+    *job = sharedMemJob;
 
-    printPrintJob(sharedMemJob);
-    //copyPrintJob(sharedMemJob, job);
-
-    printf("Server is leaving critical section.\n");
     // CRITICAL SECTION END
     sem_post(&sharedMemory->mutex);
     sem_post(&sharedMemory->empty);
-    //printf("End taking job.\n");
 }
-
-///**
-// * Print the properties of a job.
-// */
-//void print_a_msg(PrintJob* job) {
-//    printPrintJob(*job);
-//}
 
 /**
  * Sleep for the duration of a job.
  */
 void go_sleep(PrintJob* job) {
-    printf("Printer 0 starts printing %d pages from Buffer[%d]", job->pagesToPrint, sharedMemory->buffer.lastPoppedIndex);
-	//printf("Starting to sleep.\n");
-	//sleep(job->duration);
-    sleep(15);
-	//printf("Finished sleeping.\n");
+    // Let the user know that we are starting to sleep
+    printf("Printer 0 starts printing %d pages from Buffer[%d]\n", job->pagesToPrint, sharedMemory->buffer.lastPoppedIndex);
+    // If we don't flush the buffer, then the print doesn't happen before the sleep
+    fflush(stdout);
+    sleep(job->duration);
+    printf("Printer 0 finishes printing %d pages from Buffer[%d]\n", job->pagesToPrint, sharedMemory->buffer.lastPoppedIndex);
+
 }
 
 int main(int argc, char *argv[]) {
@@ -157,7 +155,6 @@ int main(int argc, char *argv[]) {
 
 	while (1) {
 		take_a_job(&job, &bufferIsEmptyFlag);  // this is blocking on a semaphore if no job
-       // print_a_msg(&job); // duration of job, job ID, source of job are printed
         go_sleep(&job);    // sleep for job duration
 	}
 

@@ -23,11 +23,9 @@
 SharedMemory* attach_share_mem() {
 	// Get the shmid of the desired shared memory
 	int shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), 0);
-    printf("Shmid: %d\n", shmid);
 	// Attach to the shared memory
     SharedMemory* output = NULL;
 	output = shmat(shmid, output, 0);
-    printf("SharedMemory: %p\n", output);
 
     return output;
 }
@@ -45,14 +43,27 @@ PrintJob create_job(int id, int numPages, int duration) {
 }
 
 void put_a_job(SharedMemory* memory, PrintJob job) {
-    printf("Begin put_a_job\n");
+    int neededToSleep;
     // Wait or lock the semaphore
-    sem_wait(&memory->empty);
-    printf("Past empty semaphore\n");
+    if(sem_trywait(&memory->empty) == 0) {
+        // We got through, continue
+        neededToSleep = 0;
+    } else {
+        neededToSleep = 1;
+        // Let the user know that we are waiting
+        printf("Client %d has %d pages to print, buffer full, sleeps\n", job.id, job.pagesToPrint);
+        // Wait
+        sem_wait(&memory->empty);
+    }
     sem_wait(&memory->mutex);
-    printf("Past mutex semaphore.\n");
     // CRITICAL SECTION BEGIN
-    printf("Client inside critical section.\n");
+
+    // Let the user know what has happened
+    if (neededToSleep) {
+        printf("Client %d wakes up, puts request in Buffer[%d]\n", job.id, memory->buffer.tailIndex);
+    } else {
+        printf("Client %d has %d pages to print, puts request in Buffer[%d]\n", job.id, job.pagesToPrint, memory->buffer.tailIndex);
+    }
 
     // Add the job to the buffer.
     pushFifoBuffer(&memory->buffer, job);
@@ -60,7 +71,6 @@ void put_a_job(SharedMemory* memory, PrintJob job) {
     // CRITICAL SECTION END
     sem_post(&memory->mutex);
     sem_post(&memory->full);
-    printf("Client outside critical section.\n");
 }
 
 /**
@@ -86,8 +96,6 @@ int main(int argc, char* argv[]) {
 	PrintJob job = create_job(clientId, numPages, duration);  // create the job record
 	put_a_job(sharedMemory, job);             // put the job record into the shared buffer
 	release_share_mem(sharedMemory);        // release the shared memory
-    printf("Client terminated.\n");
-
 	return EXIT_SUCCESS;
 }
 

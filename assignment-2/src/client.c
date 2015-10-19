@@ -1,12 +1,18 @@
 /*
- * client.c
- *
- *  Created on: Oct 11, 2015
- *      Author: Andrew Fogarty
+ ============================================================================
+ Name        : client.c
+ Author      : Andrew Fogarty - 260535895
+ Version     :
+ Copyright   :
+ Description : Printer Client
+ ============================================================================
  */
+
 
 #include <stdio.h>
 #include <stdlib.h>
+
+// Authentication
 #include "authentication.h"
 #include "fifo_buffer.h"
 #include "fifo_buffer_ops.h"
@@ -20,6 +26,9 @@
 // POSIX semaphores
 #include <semaphore.h>
 
+/**
+ * Attach to the shared memory created by the server.
+ */
 SharedMemory* attach_share_mem() {
 	// Get the shmid of the desired shared memory
 	int shmid = shmget(SHARED_MEM_KEY, sizeof(SharedMemory), 0);
@@ -42,6 +51,9 @@ PrintJob create_job(int id, int numPages, int duration) {
     };
 }
 
+/**
+ * Add a job to the shared memory.
+ */
 void put_a_job(SharedMemory* memory, PrintJob job) {
     int neededToSleep;
     int complete = 0;

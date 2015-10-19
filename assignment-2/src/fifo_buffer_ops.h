@@ -10,6 +10,9 @@
 #ifndef FIFO_BUFFER_OPS_H_
 #define FIFO_BUFFER_OPS_H_
 
+/**
+ * Push a job to a buffer.  This operation must happen in a mutex.
+ */
 void pushFifoBuffer(FifoBuffer* buffer, PrintJob newValue) {
     buffer->elements[buffer->tailIndex] = newValue;
     // Copy new job values
@@ -20,6 +23,10 @@ void pushFifoBuffer(FifoBuffer* buffer, PrintJob newValue) {
     buffer->tailIndex = (buffer->tailIndex + 1) % BUFFER_SIZE;
 }
 
+
+/**
+ * Pop the oldest job off the buffer.
+ */
 PrintJob popFifoBuffer(FifoBuffer* buffer) {
     // Grab the element we will take
     PrintJob output = buffer->elements[buffer->headIndex];

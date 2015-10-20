@@ -1,6 +1,6 @@
 /*
  ============================================================================
- Name        : assignment-2.c
+ Name        : assignment-2-server.c
  Author      : Andrew Fogarty - 260535895
  Version     :
  Copyright   : 

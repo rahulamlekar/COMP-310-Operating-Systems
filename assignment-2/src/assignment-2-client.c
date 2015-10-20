@@ -1,6 +1,6 @@
 /*
  ============================================================================
- Name        : client.c
+ Name        : assignment-2-client.c
  Author      : Andrew Fogarty - 260535895
  Version     :
  Copyright   :

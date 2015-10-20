@@ -1,0 +1,66 @@
+Assignment 2 - Andrew Fogarty
+=============================
+
+To test, I ran the script found in test-solution.sh.
+
+This script starts Printer 1 with a buffer size of 6 and printer 2 with a buffer size of 7.
+
+The script then boots up 8 clients attached to printer 1 and 8 clients attached to printer 2.
+These clients execute in parallel.
+
+
+Console output:
+
+[afogar1][linux][~/COMP-310-Operating-Systems/assignment-2/src] Client 7 has 6 pages to print, puts request in Printer 1 Buffer[0]
+Client 13 has 6 pages to print, puts request in Printer 2 Buffer[0]
+Client 3 has 6 pages to print, puts request in Printer 1 Buffer[1]
+Printer 2 starts printing 6 pages from Buffer[0]
+Client 4 has 8 pages to print, puts request in Printer 1 Buffer[2]
+Printer 1 starts printing 6 pages from Buffer[0]
+Client 12 has 4 pages to print, puts request in Printer 2 Buffer[1]
+Client 16 has 4 pages to print, puts request in Printer 2 Buffer[2]
+Client 6 has 4 pages to print, puts request in Printer 1 Buffer[3]
+Client 14 has 8 pages to print, puts request in Printer 2 Buffer[3]
+Client 5 has 2 pages to print, puts request in Printer 1 Buffer[4]
+Client 15 has 2 pages to print, puts request in Printer 2 Buffer[4]
+Client 1 has 2 pages to print, puts request in Printer 1 Buffer[5]
+Client 2 has 4 pages to print, puts request in Printer 1 Buffer[0]
+Client 8 has 8 pages to print, Printer 134514722 buffer full, sleeps
+Client 11 has 2 pages to print, puts request in Printer 2 Buffer[5]
+Client 17 has 6 pages to print, puts request in Printer 2 Buffer[6]
+Client 18 has 8 pages to print, puts request in Printer 2 Buffer[0]
+Printer 2 finishes printing 6 pages from Buffer[0]
+Printer 2 starts printing 4 pages from Buffer[1]
+Printer 1 finishes printing 6 pages from Buffer[0]
+Printer 1 starts printing 6 pages from Buffer[1]
+Client 8 wakes up, puts request in Printer 1 Buffer[1]
+Printer 2 finishes printing 4 pages from Buffer[1]
+Printer 2 starts printing 4 pages from Buffer[2]
+Printer 1 finishes printing 6 pages from Buffer[1]
+Printer 1 starts printing 8 pages from Buffer[2]
+Printer 2 finishes printing 4 pages from Buffer[2]
+Printer 2 starts printing 8 pages from Buffer[3]
+Printer 1 finishes printing 8 pages from Buffer[2]
+Printer 1 starts printing 4 pages from Buffer[3]
+Printer 2 finishes printing 8 pages from Buffer[3]
+Printer 2 starts printing 2 pages from Buffer[4]
+Printer 1 finishes printing 4 pages from Buffer[3]
+Printer 1 starts printing 2 pages from Buffer[4]
+Printer 2 finishes printing 2 pages from Buffer[4]
+Printer 2 starts printing 2 pages from Buffer[5]
+Printer 1 finishes printing 2 pages from Buffer[4]
+Printer 1 starts printing 2 pages from Buffer[5]
+Printer 2 finishes printing 2 pages from Buffer[5]
+Printer 2 starts printing 6 pages from Buffer[6]
+Printer 1 finishes printing 2 pages from Buffer[5]
+Printer 1 starts printing 4 pages from Buffer[0]
+Printer 2 finishes printing 6 pages from Buffer[6]
+Printer 2 starts printing 8 pages from Buffer[0]
+Printer 1 finishes printing 4 pages from Buffer[0]
+Printer 1 starts printing 8 pages from Buffer[1]
+Printer 1 finishes printing 8 pages from Buffer[1]
+No request in buffer, Printer 1 sleeps
+Printer 2 finishes printing 8 pages from Buffer[0]
+No request in buffer, Printer 2 sleeps
+
+[afogar1][linux][~/COMP-310-Operating-Systems/assignment-2/src]

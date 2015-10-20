@@ -58,35 +58,7 @@ PrintJob create_job(int id, int numPages, int duration) {
 /**
  * Add a job to the shared memory.
  */
-void put_a_job(SharedMemory* memory, PrintJob job) {
-    int neededToSleep;
-    int complete = 0;
-
-//    while (!complete) {
-//        sem_wait(&memory->mutex);
-//
-//        // Wait or lock the semaphore
-//        if(sem_trywait(&memory->empty) == 0) {
-//            // We got through, continue
-//            printf("Client %d has %d pages to print, puts request in Buffer[%d]\n", job.id, job.pagesToPrint, memory->buffer.tailIndex);
-//
-//            // Add the job to the buffer.
-//            pushFifoBuffer(&memory->buffer, job);
-//
-//            // CRITICAL SECTION END
-//
-//            sem_post(&memory->full);
-//            complete = 1;
-//        } else {
-//    //        // Let the user know that we are waiting
-//            printf("Client %d has %d pages to print, buffer full, sleeps\n", job.id, job.pagesToPrint);
-//    //        // Wait
-//    //        //sem_wait(&memory->empty);
-//        }
-//        sem_post(&memory->mutex);
-//
-//    }
-
+void put_a_job(SharedMemory* memory, PrintJob job, int printerId) {
     int didWait = 0;
 
     if (willSemaphoreWait(&memory->empty)) {
@@ -100,9 +72,9 @@ void put_a_job(SharedMemory* memory, PrintJob job) {
 
     // Let the user know what has happened
     if (didWait) {
-        printf("Client %d wakes up, puts request in Printer %d Buffer[%d]\n", job.id, memory->buffer.tailIndex);
+        printf("Client %d wakes up, puts request in Printer %d Buffer[%d]\n", job.id, printerId, memory->buffer.tailIndex);
     } else {
-        printf("Client %d has %d pages to print, puts request in Printer %d Buffer[%d]\n", job.id, job.pagesToPrint, memory->buffer.tailIndex);
+        printf("Client %d has %d pages to print, puts request in Printer %d Buffer[%d]\n", job.id, job.pagesToPrint, printerId, memory->buffer.tailIndex);
     }
 
     // Add the job to the buffer.
@@ -140,7 +112,7 @@ int main(int argc, char* argv[]) {
 	SharedMemory* sharedMemory = attach_share_mem(printerId);              // use the same key as the server so that the client can connect to the same memory segment
 
 	PrintJob job = create_job(clientId, numPages, duration);  // create the job record
-	put_a_job(sharedMemory, job);             // put the job record into the shared buffer
+	put_a_job(sharedMemory, job, printerId);             // put the job record into the shared buffer
 	release_share_mem(sharedMemory);        // release the shared memory
 	return EXIT_SUCCESS;
 }

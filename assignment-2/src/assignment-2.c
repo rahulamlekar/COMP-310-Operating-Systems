@@ -54,7 +54,7 @@ void setup_shared_mem(int printerId) {
 /**
  * Attach the shared memory segment
  */
-void attach_shared_mem() {
+void attach_shared_mem(int bufferSize) {
 	// Attach to the shared memory
 	sharedMemory = (void *) shmat(shmid, NULL, 0);
 
@@ -63,8 +63,9 @@ void attach_shared_mem() {
     // Reset the values
     buffer->headIndex = 0;
     buffer->tailIndex = 0;
+    buffer->size = bufferSize;
     int i;
-    for (i = 0; i < BUFFER_SIZE; i++) {
+    for (i = 0; i < MAX_BUFFER_SIZE; i++) {
         PrintJob* current;
         current = &sharedMemory->buffer.elements[i];
         current->id = 0;
@@ -76,7 +77,7 @@ void attach_shared_mem() {
 /**
  * Initialize the semaphore and put it in shared memory.
  */
-void init_semaphore() {
+void init_semaphore(int bufferSize) {
     // Destroy previously existing semaphores
     sem_destroy(&sharedMemory->mutex);
     sem_destroy(&sharedMemory->empty);
@@ -90,7 +91,7 @@ void init_semaphore() {
 	sem_init(
             &sharedMemory->empty,
             1,
-            BUFFER_SIZE
+            bufferSize
     );
     sem_init(
             &sharedMemory->full,
@@ -141,17 +142,23 @@ void go_sleep(PrintJob* job, int bufferIndex, int printerId) {
 }
 
 int main(int argc, char *argv[]) {
-    if (argc < 1) {
-        printf("Please provide printerId argument!\n");
+    if (argc < 3) {
+        printf("Please provide printerId and bufferSize arguments!\n");
         return EXIT_FAILURE;
     }
 
     // Get the printer params
     int printerId = atoi(argv[1]);
+    int bufferSize = atoi(argv[2]);
+
+    if (bufferSize < 0 || bufferSize < MAX_BUFFER_SIZE) {
+        printf("Buffer size must be at least 0 and at most %d.\n", MAX_BUFFER_SIZE);
+        return EXIT_FAILURE;
+    }
 
 	setup_shared_mem(printerId);    // create a shared memory segment
-	attach_shared_mem();   // attach the shared memory segment
-	init_semaphore();      // initialize the semaphore and put it in shared memory
+	attach_shared_mem(bufferSize);   // attach the shared memory segment
+	init_semaphore(bufferSize);      // initialize the semaphore and put it in shared memory
 
     // An empty job schema that we will fill up to print
     PrintJob job = {

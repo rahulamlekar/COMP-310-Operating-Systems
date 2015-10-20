@@ -7,20 +7,18 @@
 
 #include "print_job.h"
 
-#ifndef BUFFER_SIZE
-#define BUFFER_SIZE 6
+#ifndef MAX_BUFFER_SIZE
+#define MAX_BUFFER_SIZE 64
 #endif
 
 #ifndef FIFO_BUFFER_H_
 #define FIFO_BUFFER_H_
 
 typedef struct fifo_buffer {
-	PrintJob elements[BUFFER_SIZE];
-	int elementFull[BUFFER_SIZE];
-	int numberOfMembers;
+	PrintJob elements[MAX_BUFFER_SIZE];
 	int headIndex;
 	int tailIndex;
-    int lastPoppedIndex;
+	int size;
 } FifoBuffer;
 
 #endif /* FIFO_BUFFER_H_ */

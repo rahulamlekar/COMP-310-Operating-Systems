@@ -20,7 +20,7 @@ void pushFifoBuffer(FifoBuffer* buffer, PrintJob newValue) {
     buffer->elements[buffer->tailIndex].pagesToPrint = newValue.pagesToPrint;
     buffer->elements[buffer->tailIndex].id = newValue.id;
 
-    buffer->tailIndex = (buffer->tailIndex + 1) % BUFFER_SIZE;
+    buffer->tailIndex = (buffer->tailIndex + 1) % buffer->size;
 }
 
 
@@ -30,9 +30,8 @@ void pushFifoBuffer(FifoBuffer* buffer, PrintJob newValue) {
 PrintJob popFifoBuffer(FifoBuffer* buffer) {
     // Grab the element we will take
     PrintJob output = buffer->elements[buffer->headIndex];
-    buffer->lastPoppedIndex = buffer->headIndex;
     // Move the index along
-    buffer->headIndex = (buffer->headIndex + 1) % BUFFER_SIZE;
+    buffer->headIndex = (buffer->headIndex + 1) % buffer->size;
     // Return the value
     return output;
 }

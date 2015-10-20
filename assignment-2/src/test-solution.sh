@@ -1,6 +1,6 @@
 # Boot up the servers
-./server.exe 1 &
-./server.exe 2 &
+./server.exe 1 6 &
+./server.exe 2 7 &
 
 # Make sure server has booted
 sleep 3

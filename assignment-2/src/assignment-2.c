@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
     int printerId = atoi(argv[1]);
     int bufferSize = atoi(argv[2]);
 
-    if (bufferSize < 0 || bufferSize < MAX_BUFFER_SIZE) {
+    if (bufferSize < 0 || bufferSize > MAX_BUFFER_SIZE) {
         printf("Buffer size must be at least 0 and at most %d.\n", MAX_BUFFER_SIZE);
         return EXIT_FAILURE;
     }

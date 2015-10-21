@@ -8,6 +8,6 @@ set(SOURCE_FILES
     src/disk_emu.h
     src/fuse_wrappers.c
     src/sfs_test.c
-    src/sfs_test2.c src/sfs_api.h)
+    src/sfs_test2.c src/sfs_api.h src/sfs_api.c src/sfs_api.h)
 
 add_executable(assignment_3 ${SOURCE_FILES})

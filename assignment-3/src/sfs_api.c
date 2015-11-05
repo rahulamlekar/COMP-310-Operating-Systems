@@ -1,82 +1,55 @@
-//
-// Created by Andrew on 2015-10-21.
-//
-
 #include "sfs_api.h"
 
-
-/**
- * creates the file system
- */
 void mksfs(int fresh) {
-    // TODO
-
+	//Implement mksfs here	
+	return;
 }
 
-
-/**
- * Get the name of the next file in directory
- */
 int sfs_getnextfilename(char *fname) {
-    // TODO
-    return -1;
+
+	//Implement sfs_getnextfilename here	
+	return 0;
 }
 
 
-/**
- * Get the size of the given file
- */
 int sfs_getfilesize(const char* path) {
-    // TODO
-    return -1;
+
+	//Implement sfs_getfilesize here	
+	return 0;
 }
 
-
-/**
- * opens the given file
- */
 int sfs_fopen(char *name) {
-    // TODO
-    return -1;
+
+	//Implement sfs_fopen here	
+	return 0;
 }
 
+int sfs_fclose(int fileID){
 
-/**
- * Closes the given file
- */
-void sfs_fclose(int fileID) {
-    // TODO
+	//Implement sfs_fclose here	
+	return 0;
 }
 
+int sfs_fread(int fileID, char *buf, int length){
 
-/**
- * Write buf characters into disk
- */
-void sfs_fwrite(int fileID, char *buf, int length) {
-    // TODO
+	//Implement sfs_fread here	
+	return 0;
 }
 
+int sfs_fwrite(int fileID, const char *buf, int length){
 
-/**
- * read characters from disk into buf
- */
-void sfs_fread(int fileID, char *buf, int length) {
-    // TODO
+	//Implement sfs_fwrite here	
+	return 0;
 }
 
+int sfs_fseek(int fileID, int loc){
 
-/**
- * seek to the location from beginning
- */
-void sfs_fseek(int fileID, int loc) {
-    // TODO
+	//Implement sfs_fseek here	
+	return 0;
 }
 
-
-/**
- * removes a file from the filesystem
- */
 int sfs_remove(char *file) {
-    // TODO
-    return -1;
+
+	//Implement sfs_remove here	
+	return 0;
 }

@@ -8,7 +8,7 @@ LDFLAGS = `pkg-config fuse --cflags --libs`
 SOURCES= disk_emu.c sfs_api.c fuse_wrappers.c sfs_api.h
 
 OBJECTS=$(SOURCES:.c=.o)
-EXECUTABLE=sfs
+EXECUTABLE=sfs-fogarty-andrew
 
 all: $(SOURCES) $(HEADERS) $(EXECUTABLE)
 

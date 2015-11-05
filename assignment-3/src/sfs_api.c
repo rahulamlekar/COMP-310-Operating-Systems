@@ -5,7 +5,12 @@
  * creates the file system
  */
 void mksfs(int fresh) {
-	//Implement mksfs here	
+	//Implement mksfs here
+    if (fresh) {
+        // We need to construct the file system from scratch
+    } else {
+        // File system already exists on disk, so we need to load it from the disk.
+    }
 	return;
 }
 

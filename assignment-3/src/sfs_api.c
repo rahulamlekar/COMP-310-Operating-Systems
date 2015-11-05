@@ -1,13 +1,28 @@
+#include <stdlib.h>
 #include "sfs_api.h"
+#include "constants.h"
+#include "data_structures/super_block.h"
+#include "data_structures/file_descriptor_table.h"
+#include "data_structures/in_memory_file_system.h"
+#include "disk_emu.h"
+
+
+InMemoryFileSystem* inMemoryFileSystem;
 
 
 /**
  * creates the file system
  */
 void mksfs(int fresh) {
+    // Allocate the memory for the in memory file system
+    inMemoryFileSystem = malloc(sizeof(InMemoryFileSystem));
+
 	//Implement mksfs here
     if (fresh) {
         // We need to construct the file system from scratch
+
+        init_fresh_disk("testlol.disk", DISK_BLOCK_SIZE, DISK_BLOCK_COUNT);
+
     } else {
         // File system already exists on disk, so we need to load it from the disk.
     }

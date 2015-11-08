@@ -10,6 +10,28 @@
 
 typedef struct i_node_table{
     INode i_node[I_NODE_COUNT];
+    int open[I_NODE_COUNT];
 } INodeTable;
+
+void INodeTable_markOpen(INodeTable* table, int fileId) {
+    table->open[fileId] = 0;
+}
+void INodeTable_markClosed(INodeTable* table, int fileId) {
+    table->open[fileId] = 1;
+}
+int INodeTable_isOpen(INodeTable table, int fileId) {
+    return table.open[fileId] == 0;
+}
+int INodeTable_getOpenIndex(INodeTable table) {
+    int i;
+    for (i = 0; i < I_NODE_COUNT; i++) {
+        if (INodeTable_isOpen(table, i)) {
+            return i;
+        }
+    }
+
+    // No spot open... error
+    return -1;
+}
 
 #endif //ASSIGNMENT_3_I_NODE_TABLE_H

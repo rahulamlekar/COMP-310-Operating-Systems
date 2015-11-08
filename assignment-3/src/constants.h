@@ -18,7 +18,7 @@
 #define SB_MAGIC 0xAABB0005
 #define DISK_BLOCK_SIZE 512
 #define DISK_BLOCK_COUNT 256
-#define FILE_SYSTEM_NAME "testlol.disk"
+#define FILE_SYSTEM_NAME "tmp4.disk"
 
 // Disk indices of structures
 #define SUPER_BLOCK_INDEX 0

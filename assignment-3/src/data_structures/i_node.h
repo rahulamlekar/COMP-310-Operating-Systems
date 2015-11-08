@@ -31,4 +31,18 @@ void INode_copy(INode* dest, INode* source) {
     }
 }
 
+void INode_new(INode* iNode) {
+    iNode->size = 0;
+    iNode->gid = 0;
+    iNode->uid = 0;
+    iNode->ind_pointer = 0;
+    iNode->link_cnt = 0;
+    iNode->mode = 0;
+
+    int j;
+    for (j = 0; j < BLOCKS_PER_I_NODE; j++) {
+        iNode->pointer[j] = -1;
+    }
+}
+
 #endif //ASSIGNMENT_3_I_NODE_H

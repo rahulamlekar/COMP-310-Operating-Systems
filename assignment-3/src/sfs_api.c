@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <stdio.h>
 #include "sfs_api.h"
 #include "constants.h"
 #include "data_structures/super_block.h"
@@ -35,7 +36,6 @@ void allocate_in_memory_file_system() {
 }
 
 
-
 /**
  * creates the file system
  */
@@ -43,9 +43,15 @@ void mksfs(int fresh) {
     // Allocate all the necessary memory
     allocate_in_memory_file_system();
 
+    printf("Starting mksfs()\n");
+
 	//Implement mksfs here
     if (fresh) {
         // We need to construct the file system from scratch
+
+        // Delete the disk file, if it exists
+        int test = remove(FILE_SYSTEM_NAME);
+        printf("Test: %d\n", test);
 
         // Initialize a new fresh disk
         init_fresh_disk(FILE_SYSTEM_NAME, DISK_BLOCK_SIZE, DISK_BLOCK_COUNT);
@@ -83,26 +89,27 @@ void mksfs(int fresh) {
             // Clear the temp data
             free(tempINode);
         }
+
+        // Copy the free bit map into memory
+        freeBitMap = load_free_bitmap_from_disk();
     }
 	return;
 }
 
 
-int directoryIndex = 0;
-
 /**
- * get the name of the next file in directory
+ * copies the name of the next file in the directory into fname
+ * and returns non zero if there is a new file. Once all the files
+ * have been returned, this function returns 0.
  */
 int sfs_getnextfilename(char *fname) {
-    // copies the name of the next file in the directory into fname
-    // and returns non zero if there is a new file. Once all the files
-    // have been returned, this function returns 0.
 
-    if (directoryIndex < 16) {
+    int index = directoryCache->readIndex;
+    if (index < I_NODE_COUNT) {
         // Copy the
-        strcpy(fname, directoryCache->directory[directoryIndex].name);
+        strcpy(fname, directoryCache->directory[index].name);
         // Increase the index for next time
-        directoryIndex++;
+        directoryCache->readIndex++;
         return 1;
     } else {
         // We have finished looping through the directory, so return 0
@@ -134,18 +141,71 @@ int sfs_getfilesize(const char* path) {
  * opens the given file
  */
 int sfs_fopen(char *name) {
-    // Get an open FDTable index
-    int newIndex = FileDescriptorTable_getOpenIndex(*fileDescriptorTable);
-    // If there is no space, return error
-    if (newIndex == -1) {
-        return -1;
+    printf("Opening %s\n", name);
+    // Get the iNode index from the Directory cache
+    int iNodeIndex = DirectoryCache_getDirectoryINodeIndex(directoryCache, name);
+
+    printf("First INodeIndex: %d\n", iNodeIndex);
+
+    if (iNodeIndex != -1) {
+        printf("test\n");
+        // The iNode already exists.  So, let's see if it's already open
+        int existingFdIndex = FileDescriptorTable_getIndexOfInode(*fileDescriptorTable, iNodeIndex);
+        printf("existingFdIndex: %d\n", existingFdIndex);
+        if (existingFdIndex != -1) {
+            printf("Already exists!!!\n");
+            // The file is already open!!!!!!  So we just return it's FD.
+            return existingFdIndex;
+        }
     }
 
-    // There is space, so let's fill up the spot on the table
-    fileDescriptorTable->fd[newIndex].i_node_number = 0; // Set the iNode
-    fileDescriptorTable->fd[newIndex].read_write_pointer = 0;
+    // Add an entry to the open FD table
+    int fdIndex = FileDescriptorTable_getOpenIndex(*fileDescriptorTable);
 
-	return newIndex;
+    // Mark the new index as closed
+    FileDescriptorTable_markClosed(fileDescriptorTable, fdIndex);
+
+    if (iNodeIndex == -1) {
+        printf("CREATING BRAND NEW FILE.\n");
+        // Getting the iNode index failed.  So, the file doesn't exist!  We must create
+        // a new file!
+
+        // Get an empty index on the iNode table
+        iNodeIndex = INodeTable_getOpenIndex(*iNodeTable);
+        //printf("New iNode Index: %d\n", iNodeIndex);
+
+        // Get the iNode and give it blank data!
+        INode* iNode = &iNodeTable->i_node[iNodeIndex];
+        INode_new(iNode);
+
+        // Mark the iNode space full
+        INodeTable_markClosed(iNodeTable, iNodeIndex);
+
+        // Write the iNode to the hard drive
+        save_i_node_to_disk(iNodeIndex, iNode);
+
+        // Make a directory object and add it to the disk
+        int directoryIndex = DirectoryCache_getOpenIndex(*directoryCache);
+        DirectoryCache_markClosed(directoryCache, directoryIndex);
+        printf("Directory object for %s has iNodeIndex %d\n", name, iNodeIndex);
+        printf("Before: %d\n", iNodeIndex);
+        directoryCache->directory[directoryIndex].i_node_index = iNodeIndex;
+        // Copy the name
+        strcpy(directoryCache->directory[directoryIndex].name, name);
+
+        // TODO: Copy directory to disk
+    }
+
+    //printf("iNodeIndex: %d\n", iNodeIndex);
+
+    // Copy the iNode index to the table value
+    fileDescriptorTable->fd[fdIndex].i_node_number = iNodeIndex;
+    fileDescriptorTable->fd[fdIndex].read_write_pointer = 0; // TODO: Figure out what to initialize this to
+
+    printf("FDINDEX: %d\n", fdIndex);
+
+    // Return the index from the open file table
+	return fdIndex;
 }
 
 

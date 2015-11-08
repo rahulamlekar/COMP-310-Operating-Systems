@@ -14,12 +14,12 @@ typedef struct directory_cache {
     Directory directory[DIRECTORY_CACHE_SIZE];
 } DirectoryCache;
 
-INode* DirectoryCache_getDirectory(DirectoryCache cache, char name[]) {
+int DirectoryCache_getDirectory(DirectoryCache cache, char name[]) {
     int i;
     for (i = 0; i < DIRECTORY_CACHE_SIZE; i++) {
         // Return pointer to iNode that matches
         if (strcmp(cache.directory[i].name, name) == 0) {
-            return cache.directory[i].i_node;
+            return cache.directory[i].i_node_index;
         }
     }
 

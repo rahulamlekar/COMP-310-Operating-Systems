@@ -8,6 +8,7 @@
 #include "data_structures/directory_cache.h"
 #include "data_structures/disk_block_cache.h"
 #include "data_structures/i_node_table.h"
+#include "helpers/disk_access.h"
 
 
 //InMemoryFileSystem* inMemoryFileSystem;
@@ -18,17 +19,12 @@ INodeTable* iNodeTable;
 
 FreeBitMap* freeBitMap;
 
-
-/**
- * creates the file system
- */
-void mksfs(int fresh) {
+void allocate_in_memory_file_system() {
     // Allocate the memory for the in memory file system
     directoryCache = malloc(sizeof(DirectoryCache));
     diskBlockCache = malloc(sizeof(DiskBlockCache));
     fileDescriptorTable = malloc(sizeof(FileDescriptorTable));
     iNodeTable = malloc(sizeof(INodeTable));
-
     freeBitMap = malloc(sizeof(FreeBitMap));
 
     // Allocate empty disk data cache
@@ -36,6 +32,16 @@ void mksfs(int fresh) {
     for (i = 0; i < DISK_BLOCK_CACHE_SIZE; i++) {
         diskBlockCache->data[i] = malloc(DISK_BLOCK_SIZE);
     }
+}
+
+
+
+/**
+ * creates the file system
+ */
+void mksfs(int fresh) {
+    // Allocate all the necessary memory
+    allocate_in_memory_file_system();
 
 	//Implement mksfs here
     if (fresh) {
@@ -62,22 +68,46 @@ void mksfs(int fresh) {
         // File system already exists on disk, so we need to load it from the disk.
 
         // Initialize an existing disk
-        //init_disk(FILE_SYSTEM_NAME, DISK_BLOCK_SIZE, DISK_BLOCK_COUNT);
+        init_disk(FILE_SYSTEM_NAME, DISK_BLOCK_SIZE, DISK_BLOCK_COUNT);
 
-        // Load disk data into on memory file system
+        // Copy iNodes into local memory
+        INode* tempINode;
+        int i;
+        for (i = 0; i < I_NODE_COUNT; i++) {
+            // Temporarily copy the iNode off disk
+            tempINode = load_i_node_from_disk(i);
 
+            // Copy the data from the temp INode into memory
+            INode_copy(&iNodeTable->i_node[i], tempINode);
+
+            // Clear the temp data
+            free(tempINode);
+        }
     }
 	return;
 }
 
 
+int directoryIndex = 0;
+
 /**
  * get the name of the next file in directory
  */
 int sfs_getnextfilename(char *fname) {
+    // copies the name of the next file in the directory into fname
+    // and returns non zero if there is a new file. Once all the files
+    // have been returned, this function returns 0.
 
-	//Implement sfs_getnextfilename here	
-	return 0;
+    if (directoryIndex < 16) {
+        // Copy the
+        strcpy(fname, directoryCache->directory[directoryIndex].name);
+        // Increase the index for next time
+        directoryIndex++;
+        return 1;
+    } else {
+        // We have finished looping through the directory, so return 0
+        return 0;
+    }
 }
 
 
@@ -90,7 +120,8 @@ int sfs_getfilesize(const char* path) {
     for (i = 0; i < 5; i++) {
         if (strcmp(directoryCache->directory[i].name, path) == 0) {
             // It's the same name, so figure out the file size
-            return directoryCache->directory[i].i_node->size;
+            int iNodeIndex = directoryCache->directory[i].i_node_index;
+            return iNodeTable->i_node[iNodeIndex].size;
         }
     }
 
@@ -122,9 +153,6 @@ int sfs_fopen(char *name) {
  * closes the given file
  */
 int sfs_fclose(int fileID){
-
-	//Implement sfs_fclose here
-
     // Mark spot empty on fd table
     FileDescriptorTable_markClosed(fileDescriptorTable, fileID);
 
@@ -143,24 +171,14 @@ int sfs_fread(int fileID, char *buf, int length){
     INode iNode = iNodeTable->i_node[fd.i_node_number];
     int rwPointer = fd.read_write_pointer;
 
-    // Loop until i is at the corrent place
+    int numBlocks = length / DISK_BLOCK_SIZE;
+
     int i;
-    for (i = 0; i < BLOCKS_PER_I_NODE; i++) {
-        if (rwPointer == iNode.pointer[i]) {
-            break;
-        }
-    }
-
-    // Ok, we know where we are in the iNode.  We will now copy the rest
-    // into the buffer
-    void* data;
-    while (i < BLOCKS_PER_I_NODE) {
-        // Get the data from the cache
-        data = DiskBlockCache_getData(diskBlockCache, iNode.pointer[i]);
-        // Copy the data into the buffer
-        memcpy(buf, data, DISK_BLOCK_SIZE);
-
-        i++;
+    for (i = 0; i < numBlocks; i++) {
+        // Extract the data from the disk
+        void* data = DiskBlockCache_getData(diskBlockCache, iNode.pointer[rwPointer + i]);
+        // Copy the data onto the buffer
+        memcpy(buf + i, data, DISK_BLOCK_SIZE);
     }
 
 	return 0;
@@ -174,32 +192,31 @@ int sfs_fwrite(int fileID, const char *buf, int length){
 
     // Get the iNode of the desired file
     FileDescriptor fileDescriptor = fileDescriptorTable->fd[fileID];
-    INode fileINode = iNodeTable->i_node[fileDescriptor.i_node_number];
+    INode* fileINode = &iNodeTable->i_node[fileDescriptor.i_node_number];
 
 	//Implement sfs_fwrite here
 
     int numBlocks = length / DISK_BLOCK_SIZE;
-    int startingSizeInBlocks = 0;
-    int startingBlockIndex = 0;
+    int startingBlockIndex = fileDescriptor.read_write_pointer;
+    int endingWRPointer = fileDescriptor.read_write_pointer + numBlocks;
 
-    for (int i = 0; i < numBlocks; i++) {
-        if ((i + startingBlockIndex) > startingBlockIndex) {
-            // We need to make a new data
+    int i;
+    for (i = startingBlockIndex; i <= endingWRPointer; i++) {
+        // Get an index for the new data
+        int newBlockDiskIndex = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
 
-            // Get an index for the new data
-            int newBlockDiskIndex = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
+        // Save the new index to the iNode
+        fileINode->pointer[i] = newBlockDiskIndex;
 
-            // Write one data to the new location
-            write_blocks(newBlockDiskIndex, 1, buf);
-        } else {
-            // We are going to overwrite a previously existing data
-
-            // TODO: Get the previous index, etc...
-            int previousIndex = 123;
-
-            write_blocks(previousIndex, 1, buf);
-        }
+        // Write one data to the new location
+        write_blocks(newBlockDiskIndex, 1, buf);
     }
+
+    // Save the updated iNode to disk
+    save_i_node_to_disk(fileDescriptor.i_node_number, fileINode);
+
+    // Save the free bitmap to disk with updated info
+    save_free_bitmap_to_disk(freeBitMap);
 
 	return 0;
 }
@@ -211,7 +228,8 @@ int sfs_fwrite(int fileID, const char *buf, int length){
 int sfs_fseek(int fileID, int loc){
     // Modify the pointer in memory.  Nothing to be done on disk!
 
-
+    // I think it's just a matter of setting the read write pointer?
+    fileDescriptorTable->fd[fileID].read_write_pointer = loc;
 
 	return 0;
 }
@@ -221,37 +239,39 @@ int sfs_fseek(int fileID, int loc){
  * removes a file from the filesystem
  */
 int sfs_remove(char *file) {
+    // First, grab the iNode and delete it's data blocks from memory
+    int i;
+    for (i = 0; i < 10; i++) {
+        if (strcmp(directoryCache->directory[i].name, file) == 0) {
+            // We found it
+            break;
+        }
+    }
 
-	//Implement sfs_remove here	
+    int iNodeIndex = directoryCache->directory[i].i_node_index;
+
+    INode iNode = iNodeTable->i_node[iNodeIndex];
+    for (i = 0; i < BLOCKS_PER_I_NODE; i++) {
+        // Erase the block from the disk
+        erase_disk_block(iNode.pointer[i]);
+        // Mark block free
+        FreeBitMap_markBitFree(freeBitMap, iNode.pointer[i]);
+    }
+
+
+    // Then, delete the iNode from disk
+    delete_i_node_from_disk(iNodeIndex);
+
+    // Then, remove the file descriptor from memory
+    // TODO
+
+    // Then, save the updated free bitmap to disk
+    save_free_bitmap_to_disk(freeBitMap);
+
 	return 0;
 }
 
 
-/*
- * Disk Access Helper functions
- */
-
-/**x
- * Read the nth data data into a buffer from disk
- */
-INode* read_inode_data_block(int index) {
-    INode* output = malloc(sizeof(INode));
-    read_blocks(I_NODE_TABLE_BLOCK_INDEX + index, 1, output);
-    return output;
-}
-
 int size_to_blocks(int size) {
     return size / DISK_BLOCK_SIZE;
-}
-
-
-void save_i_node_to_disk(int iNodeIndex) {
-    // We will make a copy of the in-memory iNode with a few modifications
-
-    INode* toDiskInode = malloc(sizeof(INode));
-
-
-
-    // Free the copy
-    free(toDiskInode);
 }

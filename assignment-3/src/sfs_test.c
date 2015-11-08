@@ -79,6 +79,8 @@ main(int argc, char **argv)
 
   mksfs(1);                     /* Initialize the file system. */
 
+  printf("mksfs() called!\n");
+
   /* First we open two files and attempt to write data to them.
    */
   for (i = 0; i < 2; i++) {

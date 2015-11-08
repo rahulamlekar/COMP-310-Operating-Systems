@@ -10,7 +10,7 @@
 
 typedef struct directory {
     char name[FILE_NAME_LENGTH];
-    INode* i_node;
+    int i_node_index;
 } Directory;
 
 #endif //ASSIGNMENT_3_DIRECTORY_H

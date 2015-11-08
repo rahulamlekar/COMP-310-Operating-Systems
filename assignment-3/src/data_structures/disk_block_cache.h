@@ -14,37 +14,6 @@ typedef struct disk_block_cache {
     int open[DISK_BLOCK_CACHE_SIZE];
 } DiskBlockCache;
 
-
-/**
- * Get a particular data block from the disk.  If it's in memory, use it.
- * Otherwise, read from disk and put in memory
- */
-void* DiskBlockCache_getData(DiskBlockCache* cache, int diskId) {
-    int index = -1;
-    // Get index if existing
-    index = DiskBlockCache_getCacheIndex(*cache, diskId);
-    if (index != -1) {
-        // It exists, so return the data!
-        return cache->data[index];
-    } else {
-        // The data is not currently in the cache.  So, we will load it in from disk
-
-        // Get an open index
-        int cacheIndex = DiskBlockCache_getOpenIndex(*cache);
-        // TODO: Implement functionality if no space left
-
-        // Read the data from disk into that index
-        read_data_block(diskId, cache->data[cacheIndex]);
-
-        // Mark full
-        DiskBlockCache_markClosed(cache, cacheIndex);
-        // Save index mapping
-        cache->indices[cacheIndex] = diskId;
-
-        return cache->data[cacheIndex];
-    }
-}
-
 void read_data_block(int index, void* buffer) {
     read_blocks(DATA_BLOCK_TABLE_INDEX + index, 1, buffer);
 }
@@ -104,6 +73,36 @@ int DiskBlockCache_getOpenIndex(DiskBlockCache table) {
 
     // No spot open... error
     return -1;
+}
+
+/**
+ * Get a particular data block from the disk.  If it's in memory, use it.
+ * Otherwise, read from disk and put in memory
+ */
+void* DiskBlockCache_getData(DiskBlockCache* cache, int diskId) {
+    int index = -1;
+    // Get index if existing
+    index = DiskBlockCache_getCacheIndex(*cache, diskId);
+    if (index != -1) {
+        // It exists, so return the data!
+        return cache->data[index];
+    } else {
+        // The data is not currently in the cache.  So, we will load it in from disk
+
+        // Get an open index
+        int cacheIndex = DiskBlockCache_getOpenIndex(*cache);
+        // TODO: Implement functionality if no space left
+
+        // Read the data from disk into that index
+        read_data_block(diskId, cache->data[cacheIndex]);
+
+        // Mark full
+        DiskBlockCache_markClosed(cache, cacheIndex);
+        // Save index mapping
+        cache->indices[cacheIndex] = diskId;
+
+        return cache->data[cacheIndex];
+    }
 }
 
 

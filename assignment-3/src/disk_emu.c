@@ -112,7 +112,7 @@ int read_blocks(int start_address, int nblocks, void *buffer)
     /*Goto the data requested from the disk*/
     fseek(fp, start_address * BLOCK_SIZE, SEEK_SET);
 
-    /*For every block requested*/
+    /*For every data requested*/
     for (i = 0; i < nblocks; ++i)
     {
         /*Pause until the latency duration is elapsed*/
@@ -158,7 +158,7 @@ int write_blocks(int start_address, int nblocks, void *buffer)
     /*Goto where the data is to be written on the disk*/        
     fseek(fp, start_address * BLOCK_SIZE, SEEK_SET);
 
-    /*For every block requested*/        
+    /*For every data requested*/
     for (i = 0; i < nblocks; ++i)
     {
         /*Pause until the latency duration is elapsed*/

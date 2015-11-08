@@ -13,14 +13,4 @@ typedef struct super_block {
     int root_directory_i_node;
 } SuperBlock;
 
-SuperBlock construct_super_block() {
-    return (SuperBlock) {
-            0xAABB0005,
-            512,
-            16, // we want 16 blocks
-            16, // table of length 16
-            0 // Root directory at iNode 0
-    };
-}
-
 #endif //ASSIGNMENT_3_SUPER_BLOCK_H

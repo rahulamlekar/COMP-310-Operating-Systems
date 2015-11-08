@@ -10,9 +10,21 @@
 
 #define I_NODE_COUNT 16
 #define FILE_DESCRIPTOR_TABLE_SIZE 8
+#define DISK_BLOCK_CACHE_SIZE 64
+
+#define BLOCKS_PER_I_NODE 12
 
 // Constants related to disk stuff
+#define SB_MAGIC 0xAABB0005
 #define DISK_BLOCK_SIZE 512
 #define DISK_BLOCK_COUNT 256
+#define FILE_SYSTEM_NAME "testlol.disk"
+
+// Disk indices of structures
+#define SUPER_BLOCK_INDEX 0
+#define I_NODE_TABLE_BLOCK_INDEX 1
+#define DATA_BLOCK_TABLE_INDEX 16
+#define DIRECTORIES_BLOCK_INDEX 32
+#define FREE_BITMAP_BLOCK_INDEX 64
 
 #endif //ASSIGNMENT_3_CONSTANTS_H

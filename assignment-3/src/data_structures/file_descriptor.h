@@ -7,7 +7,7 @@
 
 typedef struct file_descriptor {
     int i_node_number;        // Corresponds to the file
-    int read_write_pointer;   //
+    int read_write_pointer;   // A data data number
 } FileDescriptor;
 
 #endif //ASSIGNMENT_3_FILE_DESCRIPTOR_H

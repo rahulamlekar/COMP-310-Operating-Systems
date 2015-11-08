@@ -11,7 +11,7 @@ typedef struct i_node {
     int uid;
     int gid;
     int size;
-    int pointer[12];
+    int pointer[BLOCKS_PER_I_NODE];
     int ind_pointer;
 } INode;
 

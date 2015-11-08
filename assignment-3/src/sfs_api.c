@@ -51,7 +51,7 @@ void mksfs(int fresh) {
 
         // Delete the disk file, if it exists
         int test = remove(FILE_SYSTEM_NAME);
-        printf("Test: %d\n", test);
+//        printf("Test: %d\n", test);
 
         // Initialize a new fresh disk
         init_fresh_disk(FILE_SYSTEM_NAME, DISK_BLOCK_SIZE, DISK_BLOCK_COUNT);
@@ -141,32 +141,32 @@ int sfs_getfilesize(const char* path) {
  * opens the given file
  */
 int sfs_fopen(char *name) {
-    printf("Opening %s\n", name);
+//    printf("Opening %s\n", name);
     // Get the iNode index from the Directory cache
     int iNodeIndex = DirectoryCache_getDirectoryINodeIndex(directoryCache, name);
 
-    printf("First INodeIndex: %d\n", iNodeIndex);
+//    printf("First INodeIndex: %d\n", iNodeIndex);
 
     if (iNodeIndex != -1) {
         printf("test\n");
         // The iNode already exists.  So, let's see if it's already open
         int existingFdIndex = FileDescriptorTable_getIndexOfInode(*fileDescriptorTable, iNodeIndex);
-        printf("existingFdIndex: %d\n", existingFdIndex);
+//        printf("existingFdIndex: %d\n", existingFdIndex);
         if (existingFdIndex != -1) {
-            printf("Already exists!!!\n");
-            // The file is already open!!!!!!  So we just return it's FD.
+//            printf("Already exists!!!\n");
+            // The file is already in_use!!!!!!  So we just return it's FD.
             return existingFdIndex;
         }
     }
 
-    // Add an entry to the open FD table
+    // Add an entry to the in_use FD table
     int fdIndex = FileDescriptorTable_getOpenIndex(*fileDescriptorTable);
 
     // Mark the new index as closed
-    FileDescriptorTable_markClosed(fileDescriptorTable, fdIndex);
+    FileDescriptorTable_markInUse(fileDescriptorTable, fdIndex);
 
     if (iNodeIndex == -1) {
-        printf("CREATING BRAND NEW FILE.\n");
+//        printf("CREATING BRAND NEW FILE.\n");
         // Getting the iNode index failed.  So, the file doesn't exist!  We must create
         // a new file!
 
@@ -187,9 +187,10 @@ int sfs_fopen(char *name) {
         // Make a directory object and add it to the disk
         int directoryIndex = DirectoryCache_getOpenIndex(*directoryCache);
         DirectoryCache_markClosed(directoryCache, directoryIndex);
-        printf("Directory object for %s has iNodeIndex %d\n", name, iNodeIndex);
-        printf("Before: %d\n", iNodeIndex);
-        directoryCache->directory[directoryIndex].i_node_index = iNodeIndex;
+//        printf("Directory object for %s has iNodeIndex %d\n", name, iNodeIndex);
+//        printf("Before: %d\n", iNodeIndex);
+        directoryCache->directory[directoryIndex].i_node_index = (int) iNodeIndex;
+//        printf("After: %d\n", directoryCache->directory[directoryIndex].i_node_index);
         // Copy the name
         strcpy(directoryCache->directory[directoryIndex].name, name);
 
@@ -202,9 +203,9 @@ int sfs_fopen(char *name) {
     fileDescriptorTable->fd[fdIndex].i_node_number = iNodeIndex;
     fileDescriptorTable->fd[fdIndex].read_write_pointer = 0; // TODO: Figure out what to initialize this to
 
-    printf("FDINDEX: %d\n", fdIndex);
+//    printf("FDINDEX: %d\n", fdIndex);
 
-    // Return the index from the open file table
+    // Return the index from the in_use file table
 	return fdIndex;
 }
 
@@ -213,9 +214,17 @@ int sfs_fopen(char *name) {
  * closes the given file
  */
 int sfs_fclose(int fileID){
-    // Mark spot empty on fd table
-    FileDescriptorTable_markClosed(fileDescriptorTable, fileID);
+    FileDescriptorTable_print(*fileDescriptorTable);
 
+    // Error if already closed
+    if (FileDescriptorTable_isNotInUse(*fileDescriptorTable, fileID)) {
+        return -1;
+    }
+
+    // Mark spot empty on fd table
+    FileDescriptorTable_markNotInUse(fileDescriptorTable, fileID);
+
+    // Success!
 	return 0;
 }
 
@@ -251,34 +260,44 @@ int sfs_fread(int fileID, char *buf, int length){
 int sfs_fwrite(int fileID, const char *buf, int length){
 
     // Get the iNode of the desired file
-    FileDescriptor fileDescriptor = fileDescriptorTable->fd[fileID];
-    INode* fileINode = &iNodeTable->i_node[fileDescriptor.i_node_number];
+    FileDescriptor* fileDescriptor = &fileDescriptorTable->fd[fileID];
+    INode* fileINode = &iNodeTable->i_node[fileDescriptor->i_node_number];
 
 	//Implement sfs_fwrite here
 
-    int numBlocks = length / DISK_BLOCK_SIZE;
-    int startingBlockIndex = fileDescriptor.read_write_pointer;
-    int endingWRPointer = fileDescriptor.read_write_pointer + numBlocks;
+    int numBlocks = (length / DISK_BLOCK_SIZE) + 1;
+
+    int totalBytesWritten = 0;
 
     int i;
-    for (i = startingBlockIndex; i <= endingWRPointer; i++) {
+    for (i = 0; i < numBlocks; i++) {
         // Get an index for the new data
         int newBlockDiskIndex = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
 
         // Save the new index to the iNode
-        fileINode->pointer[i] = newBlockDiskIndex;
+        fileINode->pointer[fileDescriptor->read_write_pointer + i] = newBlockDiskIndex;
 
         // Write one data to the new location
         write_blocks(newBlockDiskIndex, 1, buf);
+
+        // Calculate how much we have written
+        if (i == (numBlocks - 1)) {
+            totalBytesWritten += length % DISK_BLOCK_SIZE;
+        } else {
+            totalBytesWritten += DISK_BLOCK_SIZE;
+        }
     }
 
+    // Save the new rw pointer
+    fileDescriptor->read_write_pointer = fileDescriptor->read_write_pointer + i;
+
     // Save the updated iNode to disk
-    save_i_node_to_disk(fileDescriptor.i_node_number, fileINode);
+    save_i_node_to_disk(fileDescriptor->i_node_number, fileINode);
 
     // Save the free bitmap to disk with updated info
     save_free_bitmap_to_disk(freeBitMap);
 
-	return 0;
+	return totalBytesWritten;
 }
 
 

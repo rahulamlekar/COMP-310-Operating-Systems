@@ -38,9 +38,11 @@ int DirectoryCache_getOpenIndex(DirectoryCache table) {
 int DirectoryCache_getDirectoryINodeIndex(DirectoryCache* cache, char *name) {
     int i;
     for (i = 0; i < I_NODE_COUNT; i++) {
+//        printf("Directory {name: \"%s\", inode: %d}\n", cache->directory[i].name, cache->directory[i].i_node_index);
+
         // Return pointer to iNode that matches
         if (strcmp(cache->directory[i].name, name) == 0) {
-            printf("%s Returning: %d from index %d\n", cache->directory[i].name, cache->directory[i].i_node_index, i);
+//            printf("%s Returning: %d from index %d\n", cache->directory[i].name, cache->directory[i].i_node_index, i);
             return cache->directory[i].i_node_index;
         }
     }

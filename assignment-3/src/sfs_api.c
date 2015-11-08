@@ -3,7 +3,6 @@
 #include "constants.h"
 #include "data_structures/super_block.h"
 #include "data_structures/file_descriptor_table.h"
-#include "data_structures/in_memory_file_system.h"
 #include "disk_emu.h"
 #include "data_structures/free_bitmap.h"
 #include "data_structures/directory_cache.h"

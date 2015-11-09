@@ -12,7 +12,7 @@
 #define FILE_DESCRIPTOR_TABLE_SIZE 8
 #define DISK_BLOCK_CACHE_SIZE 64
 
-#define BLOCKS_PER_I_NODE 12
+#define BLOCKS_PER_I_NODE 128
 
 // Constants related to disk stuff
 #define SB_MAGIC 0xAABB0005

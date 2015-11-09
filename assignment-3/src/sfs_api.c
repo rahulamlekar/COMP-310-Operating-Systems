@@ -233,6 +233,13 @@ int sfs_fclose(int fileID){
  * read characters from disk into buf
  */
 int sfs_fread(int fileID, char *buf, int length){
+    // Return if file is closed
+    if (FileDescriptorTable_isNotInUse(*fileDescriptorTable, fileID)) {
+        printf("File %d is closed.  Cannot read...\n", fileID);
+        return 0;
+    }
+
+    printf("Reading file %d\n", fileID);
 
 	//Implement sfs_fread here
 
@@ -240,17 +247,41 @@ int sfs_fread(int fileID, char *buf, int length){
     INode iNode = iNodeTable->i_node[fd.i_node_number];
     int rwPointer = fd.read_write_pointer;
 
-    int numBlocks = length / DISK_BLOCK_SIZE;
+    //printf("Got rw pointer...\n");
 
+    int numBlocks = length / DISK_BLOCK_SIZE + 1;
+
+    // Output is the total data that we'have read...
+    int output = 0;
+
+    int amountToRead;
     int i;
     for (i = 0; i < numBlocks; i++) {
+        //printf("i: %d\n", i);
+
+        if (i == (numBlocks - 1)) {
+            amountToRead = length % DISK_BLOCK_SIZE;
+        } else {
+            amountToRead = DISK_BLOCK_SIZE;
+        }
+
+        //printf("Copying block %d of %d\n", i, numBlocks);
+
+
+
         // Extract the data from the disk
         void* data = DiskBlockCache_getData(diskBlockCache, iNode.pointer[rwPointer + i]);
+        //printf("Loaded %d of data block %d off disk...\n", amountToRead, iNode.pointer[rwPointer + i]);
         // Copy the data onto the buffer
-        memcpy(buf + i, data, DISK_BLOCK_SIZE);
+        //memcpy(buf + (i * amountToRead), data, amountToRead);
+        //printf("Finished %d\n", i);
+
+        output += amountToRead;
     }
 
-	return 0;
+    //printf("Finished copying blocks...\n");
+
+	return output;
 }
 
 

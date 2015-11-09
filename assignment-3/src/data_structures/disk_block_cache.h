@@ -8,11 +8,12 @@
 typedef struct disk_block_cache {
     int indices[DISK_BLOCK_CACHE_SIZE];
     void* data[DISK_BLOCK_CACHE_SIZE];
-    //int writeIndex;
+    int writeIndex;
 
 
     int open[DISK_BLOCK_CACHE_SIZE];
 } DiskBlockCache;
+
 
 void read_data_block(int index, void* buffer) {
     read_blocks(DATA_BLOCK_TABLE_INDEX + index, 1, buffer);
@@ -21,28 +22,6 @@ void write_data_block(int index, void* buffer) {
     write_blocks(DATA_BLOCK_TABLE_INDEX + index, 1, buffer);
 }
 
-///**
-// * Read a data data from disk into the memory cache.  Returns cache index of data.
-// */
-//int read_from_disk_into_cache(Diskint diskBlockId) {
-//    // First, find an empty index from the buffer to read into
-//    int cacheIndex = DiskBlockCache_getOpenIndex(*diskBlockCache);
-//
-//    // Read the data from disk into the cache index
-//    read_data_block(diskBlockId, diskBlockCache->data[cacheIndex]);
-//    // Save the disk id for saving later
-//    diskBlockCache->onDiskId[cacheIndex] = diskBlockId;
-//
-//    // Mark the new index as full
-//    DiskBlockCache_markClosed(diskBlockCache, cacheIndex);
-//
-//    // Return the new cache index
-//    return cacheIndex;
-//}
-
-/*
- * Helper functions
- */
 int DiskBlockCache_getCacheIndex(DiskBlockCache cache, int diskBlockId) {
     int i;
     for (i = 0; i < DISK_BLOCK_CACHE_SIZE; i++) {
@@ -54,14 +33,14 @@ int DiskBlockCache_getCacheIndex(DiskBlockCache cache, int diskBlockId) {
     return -1;
 }
 void DiskBlockCache_markOpen(DiskBlockCache* table, int fileId) {
-    table->open[fileId] = 1;
+    table->open[fileId] = 0;
 }
 void DiskBlockCache_markClosed(DiskBlockCache* table, int fileId) {
     table->indices[fileId] =
-    table->open[fileId] = 0;
+    table->open[fileId] = 1;
 }
 int DiskBlockCache_isOpen(DiskBlockCache table, int fileId) {
-    return table.open[fileId];
+    return table.open[fileId] == 0;
 }
 int DiskBlockCache_getOpenIndex(DiskBlockCache table) {
     int i;
@@ -80,28 +59,34 @@ int DiskBlockCache_getOpenIndex(DiskBlockCache table) {
  * Otherwise, read from disk and put in memory
  */
 void* DiskBlockCache_getData(DiskBlockCache* cache, int diskId) {
-    int index = -1;
     // Get index if existing
-    index = DiskBlockCache_getCacheIndex(*cache, diskId);
+    int index = DiskBlockCache_getCacheIndex(*cache, diskId);
     if (index != -1) {
+        //printf("Returning disk cache index %d\n", index);
         // It exists, so return the data!
         return cache->data[index];
     } else {
         // The data is not currently in the cache.  So, we will load it in from disk
+        //printf("Data not in cache.  Loading from disk.\n");
 
-        // Get an open index
-        int cacheIndex = DiskBlockCache_getOpenIndex(*cache);
-        // TODO: Implement functionality if no space left
+        //printf("A\n");
 
         // Read the data from disk into that index
-        read_data_block(diskId, cache->data[cacheIndex]);
+        read_data_block(diskId, cache->data[cache->writeIndex]);
 
-        // Mark full
-        DiskBlockCache_markClosed(cache, cacheIndex);
+        //printf("B\n");
+
         // Save index mapping
-        cache->indices[cacheIndex] = diskId;
+        cache->indices[cache->writeIndex] = diskId;
 
-        return cache->data[cacheIndex];
+        void* output = cache->data[cache->writeIndex];
+
+        //printf("C\n");
+
+        // Advance the circular buffer, etc...
+        cache->writeIndex = (cache->writeIndex + 1) % DISK_BLOCK_CACHE_SIZE;
+
+        return output;
     }
 }
 

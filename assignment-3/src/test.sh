@@ -1,3 +1,3 @@
 make clean
 make
-./sfs4-fogarty-andrew
+./sfs4-fogarty-andrew > test.txt

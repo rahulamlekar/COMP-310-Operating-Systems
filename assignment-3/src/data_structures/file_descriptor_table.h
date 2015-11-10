@@ -50,7 +50,7 @@ int FileDescriptorTable_getIndexOfInode(FileDescriptorTable table, int iNodeInde
 void FileDescriptorTable_print(FileDescriptorTable table) {
     int i;
     for (i = 0; i < FILE_DESCRIPTOR_TABLE_SIZE; i++) {
-        printf("FileDescriptor: {i_node_number: %d, read_write_pointer: %d}, in_use: %d\n", table.fd[i].i_node_number, table.fd[i].read_write_pointer, table.in_use[i]);
+        // printf("FileDescriptor: {i_node_number: %d, read_write_pointer: %d}, in_use: %d\n", table.fd[i].i_node_number, table.fd[i].read_write_pointer, table.in_use[i]);
     }
 }
 

@@ -148,7 +148,7 @@ int sfs_fopen(char *name) {
 //    printf("First INodeIndex: %d\n", iNodeIndex);
 
     if (iNodeIndex != -1) {
-        printf("test\n");
+//        printf("test\n");
         // The iNode already exists.  So, let's see if it's already open
         int existingFdIndex = FileDescriptorTable_getIndexOfInode(*fileDescriptorTable, iNodeIndex);
 //        printf("existingFdIndex: %d\n", existingFdIndex);
@@ -239,47 +239,59 @@ int sfs_fread(int fileID, char *buf, int length){
         return 0;
     }
 
-    printf("Reading file %d\n", fileID);
+    printf("Reading %d bytes from file %d\n", length, fileID);
 
-	//Implement sfs_fread here
-
-    FileDescriptor fd = fileDescriptorTable->fd[fileID];
-    INode iNode = iNodeTable->i_node[fd.i_node_number];
-    int rwPointer = fd.read_write_pointer;
-
-    //printf("Got rw pointer...\n");
-
-    int numBlocks = length / DISK_BLOCK_SIZE + 1;
+    FileDescriptor* fd = &fileDescriptorTable->fd[fileID];
+    INode iNode = iNodeTable->i_node[fd->i_node_number];
 
     // Output is the total data that we'have read...
     int output = 0;
 
-    int amountToRead;
-    int i;
-    for (i = 0; i < numBlocks; i++) {
+    int amountLeftToRead = length;
+
+    while (amountLeftToRead > 0) {
         //printf("i: %d\n", i);
 
-        if (i == (numBlocks - 1)) {
-            amountToRead = length % DISK_BLOCK_SIZE;
+        printf("Current RW pointer %d\n", fd->read_write_pointer);
+
+        int currentBlockIndex = fd->read_write_pointer / DISK_BLOCK_SIZE;
+        int startingIndexOfBlock = fd->read_write_pointer % DISK_BLOCK_SIZE;
+
+        int amountToRead;
+        if (amountLeftToRead > (DISK_BLOCK_SIZE - startingIndexOfBlock)) {
+            amountToRead = DISK_BLOCK_SIZE - startingIndexOfBlock;
         } else {
-            amountToRead = DISK_BLOCK_SIZE;
+            amountToRead = amountLeftToRead;
         }
 
-        //printf("Copying block %d of %d\n", i, numBlocks);
-
-
-
         // Extract the data from the disk
-        void* data = DiskBlockCache_getData(diskBlockCache, iNode.pointer[rwPointer + i]);
-        //printf("Loaded %d of data block %d off disk...\n", amountToRead, iNode.pointer[rwPointer + i]);
-        // Copy the data onto the buffer
-        //memcpy(buf + (i * amountToRead), data, amountToRead);
+
+        // Allocate an empty block
+        void* data = malloc(DISK_BLOCK_SIZE);
+        // Fill the block with the disk data
+
+        printf("File %d reading %d bytes from disk block %d\n", fileID, amountToRead, iNode.pointer[currentBlockIndex]);
+
+        read_data_block(iNode.pointer[currentBlockIndex], data);
+
+        // Copy the desired amount of memory into the output buffer
+        memcpy(buf, data, amountToRead);
         //printf("Finished %d\n", i);
 
+        // Advance the rw pointer
+        fd->read_write_pointer += amountToRead;
+
+        // Record how much has been read and how much less there is to read now
         output += amountToRead;
+        amountLeftToRead -= amountToRead;
+
+        // Increment the buffer for the next loop
+        buf += amountToRead;
     }
 
     //printf("Finished copying blocks...\n");
+
+    printf("Finished reading %d bytes.\n", output);
 
 	return output;
 }
@@ -290,37 +302,64 @@ int sfs_fread(int fileID, char *buf, int length){
  */
 int sfs_fwrite(int fileID, const char *buf, int length){
 
+    printf("Start write procedure to write %d bytes to file %d\n", length, fileID);
+
     // Get the iNode of the desired file
     FileDescriptor* fileDescriptor = &fileDescriptorTable->fd[fileID];
     INode* fileINode = &iNodeTable->i_node[fileDescriptor->i_node_number];
 
-	//Implement sfs_fwrite here
-
-    int numBlocks = (length / DISK_BLOCK_SIZE) + 1;
-
+    // Keep track of how much we have written, and how much we must write
     int totalBytesWritten = 0;
+    int amountLeftToWrite = length;
 
-    int i;
-    for (i = 0; i < numBlocks; i++) {
-        // Get an index for the new data
-        int newBlockDiskIndex = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
+    while (amountLeftToWrite > 0) {
+        int currentBlockIndex = fileDescriptor->read_write_pointer / DISK_BLOCK_SIZE;
+        int startingIndexOfBlock = fileDescriptor->read_write_pointer % DISK_BLOCK_SIZE;
+
+        int amountToWrite;
+        if (amountLeftToWrite > (DISK_BLOCK_SIZE - startingIndexOfBlock)) {
+            amountToWrite = DISK_BLOCK_SIZE - startingIndexOfBlock;
+        } else {
+            amountToWrite = amountLeftToWrite;
+        }
+
+//        printf("CurrentblockIndex = %d, startingIndexOfBlock: %d, amountLeftToWrite: %d, amountToWrite: %d\n",
+//               currentBlockIndex, startingIndexOfBlock, amountLeftToWrite, amountToWrite);
+
+        int newBlockDiskIndex;
+        if (fileINode->pointer[currentBlockIndex] > 0) {
+            // We're reusing a previously existing block
+            newBlockDiskIndex = fileINode->pointer[currentBlockIndex];
+        } else {
+//            // Get a new block from the hard drive
+            newBlockDiskIndex = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
+        }
 
         // Save the new index to the iNode
-        fileINode->pointer[fileDescriptor->read_write_pointer + i] = newBlockDiskIndex;
+        fileINode->pointer[currentBlockIndex] = newBlockDiskIndex;
 
-        // Write one data to the new location
-        write_blocks(newBlockDiskIndex, 1, buf);
+        // Create an empty buffer
+        void* newBuffer = malloc(DISK_BLOCK_SIZE);
+        // Copy the desired amount of data onto it
+        memcpy(newBuffer, buf + totalBytesWritten, amountToWrite);
 
-        // Calculate how much we have written
-        if (i == (numBlocks - 1)) {
-            totalBytesWritten += length % DISK_BLOCK_SIZE;
-        } else {
-            totalBytesWritten += DISK_BLOCK_SIZE;
-        }
+        printf("File %d writing %d bytes to disk block %d\n", fileID, amountToWrite, newBlockDiskIndex);
+
+        // Write the new buffer to the hard drive
+        write_data_block(newBlockDiskIndex, newBuffer);
+
+//        printf("File %d: Writing %d bytes to block %d.\n",fileID, amountToWrite, newBlockDiskIndex);
+
+        // Save how much we have written to the file pointer
+        fileDescriptor->read_write_pointer += amountToWrite;
+
+        // Track how much we have written.  This will be returned to user
+        totalBytesWritten += amountToWrite;
+        amountLeftToWrite -= amountToWrite;
+
+        // Increment the buffer
+        //buf += amountToWrite;
     }
-
-    // Save the new rw pointer
-    fileDescriptor->read_write_pointer = fileDescriptor->read_write_pointer + i;
 
     // Save the updated iNode to disk
     save_i_node_to_disk(fileDescriptor->i_node_number, fileINode);
@@ -337,6 +376,7 @@ int sfs_fwrite(int fileID, const char *buf, int length){
  */
 int sfs_fseek(int fileID, int loc){
     // Modify the pointer in memory.  Nothing to be done on disk!
+    printf("File %d seeking to loc %d.\n", fileID, loc);
 
     // I think it's just a matter of setting the read write pointer?
     fileDescriptorTable->fd[fileID].read_write_pointer = loc;

@@ -61,4 +61,11 @@ FreeBitMap* load_free_bitmap_from_disk() {
     return output;
 }
 
+void read_data_block(int index, void* buffer) {
+    read_blocks(DATA_BLOCK_TABLE_INDEX + index, 1, buffer);
+}
+void write_data_block(int index, void* buffer) {
+    write_blocks(DATA_BLOCK_TABLE_INDEX + index, 1, buffer);
+}
+
 #endif //ASSIGNMENT_3_DISK_ACCESS_H

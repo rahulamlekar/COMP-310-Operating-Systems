@@ -5,6 +5,8 @@
 #ifndef ASSIGNMENT_3_DISK_BLOCK_CACHE_H
 #define ASSIGNMENT_3_DISK_BLOCK_CACHE_H
 
+#include "../helpers/disk_access.h"
+
 typedef struct disk_block_cache {
     int indices[DISK_BLOCK_CACHE_SIZE];
     void* data[DISK_BLOCK_CACHE_SIZE];
@@ -13,14 +15,6 @@ typedef struct disk_block_cache {
 
     int open[DISK_BLOCK_CACHE_SIZE];
 } DiskBlockCache;
-
-
-void read_data_block(int index, void* buffer) {
-    read_blocks(DATA_BLOCK_TABLE_INDEX + index, 1, buffer);
-}
-void write_data_block(int index, void* buffer) {
-    write_blocks(DATA_BLOCK_TABLE_INDEX + index, 1, buffer);
-}
 
 int DiskBlockCache_getCacheIndex(DiskBlockCache cache, int diskBlockId) {
     int i;

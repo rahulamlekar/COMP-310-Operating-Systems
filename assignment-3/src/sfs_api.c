@@ -330,12 +330,17 @@ int sfs_fwrite(int fileID, const char *buf, int length){
 //               currentBlockIndex, startingIndexOfBlock, amountLeftToWrite, amountToWrite);
 
         int newBlockDiskIndex;
+        int blockIsNew;
         if (fileINode->pointer[currentBlockIndex] > 0) {
             // We're reusing a previously existing block
             newBlockDiskIndex = fileINode->pointer[currentBlockIndex];
+            // It's an old block
+            blockIsNew = 0;
         } else {
 //            // Get a new block from the hard drive
             newBlockDiskIndex = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
+            // It's a new block!
+            blockIsNew = 1;
         }
 
         // Save the new index to the iNode
@@ -343,8 +348,14 @@ int sfs_fwrite(int fileID, const char *buf, int length){
 
         // Create an empty buffer
         void* newBuffer = malloc(DISK_BLOCK_SIZE);
+
+        // If the block is already partially full, then we need to load the old data
+        if (!blockIsNew) {
+            read_data_block(newBlockDiskIndex, newBuffer);
+        }
+
         // Copy the desired amount of data onto it
-        memcpy(newBuffer, buf, amountToWrite);
+        memcpy(newBuffer + startingIndexOfBlock, buf, amountToWrite);
 
         printf("File %d writing %d bytes to disk block %d\n", fileID, amountToWrite, newBlockDiskIndex);
 

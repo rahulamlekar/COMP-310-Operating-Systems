@@ -8,7 +8,7 @@
 #define FILE_NAME_LENGTH 32
 #define FILE_EXTENSION_LENGTH 3
 
-#define I_NODE_COUNT 16
+#define I_NODE_COUNT 100
 #define FILE_DESCRIPTOR_TABLE_SIZE 8
 #define DISK_BLOCK_CACHE_SIZE 64
 
@@ -23,7 +23,10 @@
 // Disk indices of structures
 #define SUPER_BLOCK_INDEX 0
 #define I_NODE_TABLE_BLOCK_INDEX 1
-#define DATA_BLOCK_TABLE_INDEX 17
+
+#define DATA_BLOCK_TABLE_INDEX 101 // I_NODE_TABLE_BLOCK_INDEX + I_NODE_COUNT
+
+
 #define DIRECTORIES_BLOCK_INDEX 32
 #define FREE_BITMAP_BLOCK_INDEX 2000 // If this isn't high enough, then it overwrites data blocks!!!
 

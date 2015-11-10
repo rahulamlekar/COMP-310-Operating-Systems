@@ -10,7 +10,7 @@
 
 typedef struct directory_cache {
     Directory directory[I_NODE_COUNT];
-    int open[FILE_DESCRIPTOR_TABLE_SIZE];
+    int open[I_NODE_COUNT];
     int readIndex;
 } DirectoryCache;
 
@@ -25,7 +25,7 @@ int DirectoryCache_isOpen(DirectoryCache table, int fileId) {
 }
 int DirectoryCache_getOpenIndex(DirectoryCache table) {
     int i;
-    for (i = 0; i < FILE_DESCRIPTOR_TABLE_SIZE; i++) {
+    for (i = 0; i < I_NODE_COUNT; i++) {
         if (DirectoryCache_isOpen(table, i)) {
             return i;
         }
@@ -49,6 +49,13 @@ int DirectoryCache_getDirectoryINodeIndex(DirectoryCache* cache, char *name) {
 
     // Not Found, error state
     return -1;
+}
+
+void DirectoryCache_print(DirectoryCache cache) {
+    int i;
+    for (i = 0; i < I_NODE_COUNT; i++) {
+        printf("Directory: {name: \"%s\", i_node_index: %d } open: %d\n", cache.directory[i].name, cache.directory[i].i_node_index, cache.open[i]);
+    }
 }
 
 #endif //ASSIGNMENT_3_DIRECTORY_CACHE_H

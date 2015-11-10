@@ -143,17 +143,19 @@ int sfs_getfilesize(const char* path) {
 int sfs_fopen(char *name) {
     printf("Opening %s\n", name);
 
+    FileDescriptorTable_print(*fileDescriptorTable);
+
 //    printf("Opening %s\n", name);
     // Get the iNode index from the Directory cache
     int iNodeIndex = DirectoryCache_getDirectoryINodeIndex(directoryCache, name);
 
-//    printf("First INodeIndex: %d\n", iNodeIndex);
+    printf("First INodeIndex: %d\n", iNodeIndex);
 
     if (iNodeIndex != -1) {
-//        printf("test\n");
+        printf("test\n");
         // The iNode already exists.  So, let's see if it's already open
         int existingFdIndex = FileDescriptorTable_getIndexOfInode(*fileDescriptorTable, iNodeIndex);
-//        printf("existingFdIndex: %d\n", existingFdIndex);
+        printf("existingFdIndex: %d\n", existingFdIndex);
         if (existingFdIndex != -1) {
 //            printf("Already exists!!!\n");
             // Make sure that it's marked in use
@@ -167,17 +169,19 @@ int sfs_fopen(char *name) {
     // Add an entry to the in_use FD table
     int fdIndex = FileDescriptorTable_getOpenIndex(*fileDescriptorTable);
 
+    printf("fdIndex: %d\n", fdIndex);
+
     // Mark the new index as closed
     FileDescriptorTable_markInUse(fileDescriptorTable, fdIndex);
 
     if (iNodeIndex == -1) {
-//        printf("CREATING BRAND NEW FILE.\n");
+        printf("CREATING BRAND NEW FILE.\n");
         // Getting the iNode index failed.  So, the file doesn't exist!  We must create
         // a new file!
 
         // Get an empty index on the iNode table
         iNodeIndex = INodeTable_getOpenIndex(*iNodeTable);
-        //printf("New iNode Index: %d\n", iNodeIndex);
+        printf("New iNode Index: %d\n", iNodeIndex);
 
         // Get the iNode and give it blank data!
         INode* iNode = &iNodeTable->i_node[iNodeIndex];
@@ -189,20 +193,31 @@ int sfs_fopen(char *name) {
         // Write the iNode to the hard drive
         save_i_node_to_disk(iNodeIndex, iNode);
 
+        DirectoryCache_print(*directoryCache);
+
         // Make a directory object and add it to the disk
         int directoryIndex = DirectoryCache_getOpenIndex(*directoryCache);
+
+        if (directoryIndex == -1) {
+            // Error.  Too many directories in file system!!!
+            return -1;
+        }
+
         DirectoryCache_markClosed(directoryCache, directoryIndex);
-//        printf("Directory object for %s has iNodeIndex %d\n", name, iNodeIndex);
-//        printf("Before: %d\n", iNodeIndex);
+        printf("Directory object for %s has iNodeIndex %d\n", name, iNodeIndex);
+        printf("Before: %d\n", iNodeIndex);
         directoryCache->directory[directoryIndex].i_node_index = (int) iNodeIndex;
-//        printf("After: %d\n", directoryCache->directory[directoryIndex].i_node_index);
+        printf("After: %d\n", directoryCache->directory[directoryIndex].i_node_index);
+
+        printf("Test directoryIndex: %d\n", directoryIndex);
+        printf("Currentname: %s\n", directoryCache->directory[directoryIndex].name);
         // Copy the name
         strcpy(directoryCache->directory[directoryIndex].name, name);
-
+        printf("Complete strcpy()\n");
         // TODO: Copy directory to disk
     }
 
-    //printf("iNodeIndex: %d\n", iNodeIndex);
+    printf("iNodeIndex: %d\n", iNodeIndex);
 
     // Copy the iNode index to the table value
     fileDescriptorTable->fd[fdIndex].i_node_number = iNodeIndex;
@@ -415,6 +430,8 @@ int sfs_fseek(int fileID, int loc){
  * removes a file from the filesystem
  */
 int sfs_remove(char *file) {
+    printf("Begin removing %s.\n", file);
+
     // First, grab the iNode and delete it's data blocks from memory
     int i;
     for (i = 0; i < 10; i++) {
@@ -444,10 +461,7 @@ int sfs_remove(char *file) {
     // Then, save the updated free bitmap to disk
     save_free_bitmap_to_disk(freeBitMap);
 
+    printf("Finished removing %s.\n", file);
+
 	return 0;
-}
-
-
-int size_to_blocks(int size) {
-    return size / DISK_BLOCK_SIZE;
 }

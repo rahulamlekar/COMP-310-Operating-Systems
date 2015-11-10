@@ -178,14 +178,18 @@ main(int argc, char **argv)
         fprintf(stderr, "ERROR: Requested %d bytes, read %d\n", chunksize, readsize);
         readsize = chunksize;
       }
+        printf("Begin test loop.\n");
       for (k = 0; k < readsize; k++) {
+          //printf("(%d, %d)", buffer[k], (char)(j+k));
         if (buffer[k] != (char)(j+k)) {
-          fprintf(stderr, "ERROR: data error at offset %d in file %s (%d,%d)\n",
+          printf("ERROR: data error at offset %d in file %s (%d,%d)\n",
                   j+k, names[i], buffer[k], (char)(j+k));
           error_count++;
-          break;
+          //break;
         }
+          //printf("\n");
       }
+        printf("End test loop.\n");
       free(buffer);
     }
   }

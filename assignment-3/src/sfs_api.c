@@ -141,6 +141,8 @@ int sfs_getfilesize(const char* path) {
  * opens the given file
  */
 int sfs_fopen(char *name) {
+    printf("Opening %s\n", name);
+
 //    printf("Opening %s\n", name);
     // Get the iNode index from the Directory cache
     int iNodeIndex = DirectoryCache_getDirectoryINodeIndex(directoryCache, name);
@@ -154,6 +156,9 @@ int sfs_fopen(char *name) {
 //        printf("existingFdIndex: %d\n", existingFdIndex);
         if (existingFdIndex != -1) {
 //            printf("Already exists!!!\n");
+            // Make sure that it's marked in use
+            FileDescriptorTable_markInUse(fileDescriptorTable, existingFdIndex);
+            printf("%s already open.  Returning fd: %d\n", name, existingFdIndex);
             // The file is already in_use!!!!!!  So we just return it's FD.
             return existingFdIndex;
         }
@@ -201,9 +206,11 @@ int sfs_fopen(char *name) {
 
     // Copy the iNode index to the table value
     fileDescriptorTable->fd[fdIndex].i_node_number = iNodeIndex;
-    fileDescriptorTable->fd[fdIndex].read_write_pointer = 0; // TODO: Figure out what to initialize this to
+    fileDescriptorTable->fd[fdIndex].read_write_pointer = 0;
+    // Maybe set it to the size??? //TODO
+    fileDescriptorTable->fd[fdIndex].read_write_pointer = iNodeTable->i_node[iNodeIndex].size;
 
-//    printf("FDINDEX: %d\n", fdIndex);
+    printf("FDINDEX: %d\n", fdIndex);
 
     // Return the index from the in_use file table
 	return fdIndex;

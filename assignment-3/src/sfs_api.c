@@ -275,7 +275,7 @@ int sfs_fread(int fileID, char *buf, int length){
         read_data_block(iNode.pointer[currentBlockIndex], data);
 
         // Copy the desired amount of memory into the output buffer
-        memcpy(buf, data, amountToRead);
+        memcpy(buf, data + startingIndexOfBlock, amountToRead);
         //printf("Finished %d\n", i);
 
         // Advance the rw pointer
@@ -313,6 +313,9 @@ int sfs_fwrite(int fileID, const char *buf, int length){
     int amountLeftToWrite = length;
 
     while (amountLeftToWrite > 0) {
+
+        printf("Current RW pointer %d\n", fileDescriptor->read_write_pointer);
+
         int currentBlockIndex = fileDescriptor->read_write_pointer / DISK_BLOCK_SIZE;
         int startingIndexOfBlock = fileDescriptor->read_write_pointer % DISK_BLOCK_SIZE;
 
@@ -341,7 +344,7 @@ int sfs_fwrite(int fileID, const char *buf, int length){
         // Create an empty buffer
         void* newBuffer = malloc(DISK_BLOCK_SIZE);
         // Copy the desired amount of data onto it
-        memcpy(newBuffer, buf + totalBytesWritten, amountToWrite);
+        memcpy(newBuffer, buf, amountToWrite);
 
         printf("File %d writing %d bytes to disk block %d\n", fileID, amountToWrite, newBlockDiskIndex);
 
@@ -358,7 +361,12 @@ int sfs_fwrite(int fileID, const char *buf, int length){
         amountLeftToWrite -= amountToWrite;
 
         // Increment the buffer
-        //buf += amountToWrite;
+        buf += amountToWrite;
+
+        // Record file size change
+        if (fileDescriptor->read_write_pointer > fileINode->size) {
+            fileINode->size = fileDescriptor->read_write_pointer;
+        }
     }
 
     // Save the updated iNode to disk

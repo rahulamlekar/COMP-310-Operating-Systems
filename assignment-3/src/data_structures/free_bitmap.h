@@ -8,9 +8,17 @@
 #include "../constants.h"
 
 typedef struct free_bitmap {
-    unsigned int bit[DISK_BLOCK_COUNT];
+    char bit[DISK_BLOCK_COUNT];
 } FreeBitMap;
 
+void FreeBitMap_print(FreeBitMap bitMap) {
+    printf("Free Bitmap {\n");
+    int i;
+    for (i=0 ; i < DISK_BLOCK_COUNT; i++) {
+        printf("(%d, free: %d),\n", i, FreeBitMap_isBitFree(bitMap, i));
+    }
+    printf("}\n");
+}
 
 /**
  * Mark a particular index as unfree

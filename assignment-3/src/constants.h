@@ -12,7 +12,7 @@
 #define FILE_DESCRIPTOR_TABLE_SIZE 8
 #define DISK_BLOCK_CACHE_SIZE 64
 
-#define BLOCKS_PER_I_NODE 128
+#define BLOCKS_PER_I_NODE 11
 
 // Constants related to disk stuff
 #define SB_MAGIC 0xAABB0005
@@ -29,5 +29,18 @@
 
 #define DIRECTORIES_BLOCK_INDEX 32
 #define FREE_BITMAP_BLOCK_INDEX 2000 // If this isn't high enough, then it overwrites data blocks!!!
+
+/*
+ * Dynamic
+ */
+static int const INDIRECT_BLOCK_POINTER_SIZE = DISK_BLOCK_SIZE / sizeof(int);
+
+int bytesToBlockCount(size_t bytes) {
+    int output = bytes / DISK_BLOCK_SIZE;
+    if (bytes % DISK_BLOCK_SIZE != 0) {
+        output++;
+    }
+    return output;
+}
 
 #endif //ASSIGNMENT_3_CONSTANTS_H

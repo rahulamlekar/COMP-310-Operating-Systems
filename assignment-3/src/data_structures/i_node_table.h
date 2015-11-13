@@ -10,7 +10,7 @@
 
 typedef struct i_node_table{
     INode i_node[I_NODE_COUNT];
-    int open[I_NODE_COUNT];
+    char open[I_NODE_COUNT];
 } INodeTable;
 
 void INodeTable_markOpen(INodeTable* table, int fileId) {

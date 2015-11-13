@@ -10,6 +10,7 @@
 #include "data_structures/disk_block_cache.h"
 #include "data_structures/i_node_table.h"
 #include "helpers/disk_access.h"
+#include "data_structures/indirect_block_pointer.h"
 
 
 //InMemoryFileSystem* inMemoryFileSystem;
@@ -40,6 +41,12 @@ void allocate_in_memory_file_system() {
  * creates the file system
  */
 void mksfs(int fresh) {
+    printf("Indirect Block Pointer Size: %d\n", sizeof(IndirectBlockPointer));
+    printf("Directory cache size: %d\n", sizeof(DirectoryCache));
+    printf("INodeTable size: %d\n", sizeof(INodeTable));
+    printf("FreeBitMap size: %d\n", sizeof(FreeBitMap));
+    printf("INode Size: %d\n", sizeof(INode));
+
     // Allocate all the necessary memory
     allocate_in_memory_file_system();
 
@@ -66,9 +73,8 @@ void mksfs(int fresh) {
 
         write_blocks(0, 5, sb);
 
-        // Write iNode table to disk
-
-        write_blocks(I_NODE_TABLE_BLOCK_INDEX, 5, &iNodeTable);
+        // Write the rest of the stuff to disk
+        save_local_file_system_to_disk(freeBitMap, iNodeTable, directoryCache);
 
     } else {
         // File system already exists on disk, so we need to load it from the disk.
@@ -77,21 +83,15 @@ void mksfs(int fresh) {
         init_disk(FILE_SYSTEM_NAME, DISK_BLOCK_SIZE, DISK_BLOCK_COUNT);
 
         // Copy iNodes into local memory
-        INode* tempINode;
-        int i;
-        for (i = 0; i < I_NODE_COUNT; i++) {
-            // Temporarily copy the iNode off disk
-            tempINode = load_i_node_from_disk(i);
-
-            // Copy the data from the temp INode into memory
-            INode_copy(&iNodeTable->i_node[i], tempINode);
-
-            // Clear the temp data
-            free(tempINode);
-        }
-
+        iNodeTable = load_i_node_cache_from_disk();
+        // Copy directory cache into memory
+        directoryCache = load_directory_cache_from_disk();
         // Copy the free bit map into memory
         freeBitMap = load_free_bitmap_from_disk();
+
+//        FreeBitMap_print(*freeBitMap);
+
+//        exit(1);
     }
 	return;
 }
@@ -191,7 +191,7 @@ int sfs_fopen(char *name) {
         INodeTable_markClosed(iNodeTable, iNodeIndex);
 
         // Write the iNode to the hard drive
-        save_i_node_to_disk(iNodeIndex, iNode);
+//        save_i_node_to_disk(iNodeIndex, iNode);
 
         DirectoryCache_print(*directoryCache);
 
@@ -226,6 +226,9 @@ int sfs_fopen(char *name) {
     fileDescriptorTable->fd[fdIndex].read_write_pointer = iNodeTable->i_node[iNodeIndex].size;
 
     printf("FDINDEX: %d\n", fdIndex);
+
+    // Save our cached version of the file system
+    save_local_file_system_to_disk(freeBitMap, iNodeTable, directoryCache);
 
     // Return the index from the in_use file table
 	return fdIndex;
@@ -403,10 +406,13 @@ int sfs_fwrite(int fileID, const char *buf, int length){
     }
 
     // Save the updated iNode to disk
-    save_i_node_to_disk(fileDescriptor->i_node_number, fileINode);
+//    save_i_node_to_disk(fileDescriptor->i_node_number, fileINode);
 
     // Save the free bitmap to disk with updated info
-    save_free_bitmap_to_disk(freeBitMap);
+//    save_free_bitmap_to_disk(freeBitMap);
+
+    // Save our cached version of the file system
+    save_local_file_system_to_disk(freeBitMap, iNodeTable, directoryCache);
 
 	return totalBytesWritten;
 }
@@ -452,14 +458,17 @@ int sfs_remove(char *file) {
     }
 
 
-    // Then, delete the iNode from disk
-    delete_i_node_from_disk(iNodeIndex);
+//    // Then, delete the iNode from disk
+//    delete_i_node_from_disk(iNodeIndex);
+//
+//    // Then, remove the file descriptor from memory
+//    // TODO
+//
+//    // Then, save the updated free bitmap to disk
+//    save_free_bitmap_to_disk(freeBitMap);
 
-    // Then, remove the file descriptor from memory
-    // TODO
-
-    // Then, save the updated free bitmap to disk
-    save_free_bitmap_to_disk(freeBitMap);
+    // Save our cached version of the file system
+    save_local_file_system_to_disk(freeBitMap, iNodeTable, directoryCache);
 
     printf("Finished removing %s.\n", file);
 

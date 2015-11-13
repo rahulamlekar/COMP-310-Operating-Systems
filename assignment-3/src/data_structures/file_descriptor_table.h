@@ -10,7 +10,7 @@
 
 typedef struct file_descriptor_table {
     FileDescriptor fd[FILE_DESCRIPTOR_TABLE_SIZE];
-    int in_use[FILE_DESCRIPTOR_TABLE_SIZE];
+    char in_use[FILE_DESCRIPTOR_TABLE_SIZE];
 } FileDescriptorTable;
 
 void FileDescriptorTable_markNotInUse(FileDescriptorTable *table, int fileId) {

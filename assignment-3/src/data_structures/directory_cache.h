@@ -10,7 +10,7 @@
 
 typedef struct directory_cache {
     Directory directory[I_NODE_COUNT];
-    int open[I_NODE_COUNT];
+    char open[I_NODE_COUNT]; // Char uses fewer bits than int
     int readIndex;
 } DirectoryCache;
 

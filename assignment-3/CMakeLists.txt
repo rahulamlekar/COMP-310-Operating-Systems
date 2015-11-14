@@ -21,6 +21,6 @@ set(SOURCE_FILES
     src/sfs_api.c
     src/sfs_api.h
     src/sfs_test.c
-    src/sfs_test2.c src/helpers/disk_access.h)
+    src/sfs_test2.c src/helpers/disk_access.h src/data_structures/indirect_block_pointer.h)
 
 add_executable(assignment_3 ${SOURCE_FILES})

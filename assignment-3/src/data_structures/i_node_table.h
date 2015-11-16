@@ -34,4 +34,11 @@ int INodeTable_getOpenIndex(INodeTable table) {
     return -1;
 }
 
+void INodeTable_deleteINode(INodeTable* table, int index) {
+    // Mark the spot open
+    INodeTable_isOpen(*table, index);
+    // Clear the data
+    INode_new(&table->i_node[index]);
+}
+
 #endif //ASSIGNMENT_3_I_NODE_TABLE_H

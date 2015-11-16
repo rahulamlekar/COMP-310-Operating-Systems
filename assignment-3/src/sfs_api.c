@@ -8,34 +8,35 @@
 #include "data_structures/free_bitmap.h"
 #include "data_structures/directory_cache.h"
 #include "data_structures/disk_block_cache.h"
-#include "data_structures/i_node_table.h"
-#include "helpers/disk_access.h"
 #include "data_structures/indirect_block_pointer.h"
 
+DirectoryCache* directoryCache = NULL;
+FileDescriptorTable* fileDescriptorTable = NULL;
+INodeTable* iNodeTable = NULL;
+FreeBitMap* freeBitMap = NULL;
 
-//InMemoryFileSystem* inMemoryFileSystem;
-DirectoryCache* directoryCache;
-DiskBlockCache* diskBlockCache;
-FileDescriptorTable* fileDescriptorTable;
-INodeTable* iNodeTable;
-
-FreeBitMap* freeBitMap;
-
-void allocate_in_memory_file_system() {
-    // Allocate the memory for the in memory file system
-    directoryCache = malloc(sizeof(DirectoryCache));
-    diskBlockCache = malloc(sizeof(DiskBlockCache));
-    fileDescriptorTable = malloc(sizeof(FileDescriptorTable));
-    iNodeTable = malloc(sizeof(INodeTable));
-    freeBitMap = malloc(sizeof(FreeBitMap));
-
-    // Allocate empty disk data cache
-    int i;
-    for (i = 0; i < DISK_BLOCK_CACHE_SIZE; i++) {
-        diskBlockCache->data[i] = malloc(DISK_BLOCK_SIZE);
+void allocate_necessary_memory() {
+    if (fileDescriptorTable) {
+        memset(fileDescriptorTable, '\0', sizeof(FileDescriptorTable));
+    } else {
+        fileDescriptorTable = malloc(sizeof(FileDescriptorTable));
+    }
+    if (directoryCache) {
+        memset(directoryCache, '\0', sizeof(DirectoryCache));
+    } else {
+        directoryCache = malloc(sizeof(DirectoryCache));
+    }
+    if (iNodeTable) {
+        memset(iNodeTable, '\0', sizeof(INodeTable));
+    } else {
+        iNodeTable = malloc(sizeof(INodeTable));
+    }
+    if (freeBitMap) {
+        memset(freeBitMap, '\0', sizeof(FreeBitMap));
+    } else {
+        freeBitMap = malloc(sizeof(FreeBitMap));
     }
 }
-
 
 /**
  * creates the file system
@@ -46,19 +47,24 @@ void mksfs(int fresh) {
     printf("INodeTable size: %d\n", sizeof(INodeTable));
     printf("FreeBitMap size: %d\n", sizeof(FreeBitMap));
     printf("INode Size: %d\n", sizeof(INode));
-
-    // Allocate all the necessary memory
-    allocate_in_memory_file_system();
+    printf("SuberBlock size: %d\n", sizeof(SuperBlock));
 
     printf("Starting mksfs()\n");
+
+    // Allocate the local file system
+    allocate_necessary_memory();
+
+    FileDescriptorTable_print(*fileDescriptorTable);
+    DirectoryCache_print(*directoryCache);
+
+    printf("mksfs step 1\n");
 
 	//Implement mksfs here
     if (fresh) {
         // We need to construct the file system from scratch
 
         // Delete the disk file, if it exists
-        int test = remove(FILE_SYSTEM_NAME);
-//        printf("Test: %d\n", test);
+        remove(FILE_SYSTEM_NAME);
 
         // Initialize a new fresh disk
         init_fresh_disk(FILE_SYSTEM_NAME, DISK_BLOCK_SIZE, DISK_BLOCK_COUNT);
@@ -70,12 +76,11 @@ void mksfs(int fresh) {
         sb->file_system_size = DISK_BLOCK_COUNT;
         sb->i_node_table_length = I_NODE_COUNT;
         sb->root_directory_i_node = 0;
-
-        write_blocks(0, 5, sb);
+        write_blocks(SUPER_BLOCK_INDEX, 1, sb);
+        free(sb);
 
         // Write the rest of the stuff to disk
         save_local_file_system_to_disk(freeBitMap, iNodeTable, directoryCache);
-
     } else {
         // File system already exists on disk, so we need to load it from the disk.
 
@@ -83,16 +88,15 @@ void mksfs(int fresh) {
         init_disk(FILE_SYSTEM_NAME, DISK_BLOCK_SIZE, DISK_BLOCK_COUNT);
 
         // Copy iNodes into local memory
-        iNodeTable = load_i_node_cache_from_disk();
+        load_i_node_cache_from_disk(iNodeTable);
         // Copy directory cache into memory
-        directoryCache = load_directory_cache_from_disk();
+        load_directory_cache_from_disk(directoryCache);
         // Copy the free bit map into memory
-        freeBitMap = load_free_bitmap_from_disk();
-
-//        FreeBitMap_print(*freeBitMap);
-
-//        exit(1);
+        load_free_bitmap_from_disk(freeBitMap);
     }
+
+    FileDescriptorTable_print(*fileDescriptorTable);
+
 	return;
 }
 
@@ -122,6 +126,8 @@ int sfs_getnextfilename(char *fname) {
  * get the size of the given file
  */
 int sfs_getfilesize(const char* path) {
+    printf("Getting size of %s\n", path);
+    DirectoryCache_print(*directoryCache);
     // Loop through the directory cache and check the names
     int i;
     for (i = 0; i < 5; i++) {
@@ -143,9 +149,13 @@ int sfs_getfilesize(const char* path) {
 int sfs_fopen(char *name) {
     printf("Opening %s\n", name);
 
+    // Check that the name is valid
+    if (isFileNameValid(name) == -1) {
+        return -1;
+    }
+
     FileDescriptorTable_print(*fileDescriptorTable);
 
-//    printf("Opening %s\n", name);
     // Get the iNode index from the Directory cache
     int iNodeIndex = DirectoryCache_getDirectoryINodeIndex(directoryCache, name);
 
@@ -157,17 +167,22 @@ int sfs_fopen(char *name) {
         int existingFdIndex = FileDescriptorTable_getIndexOfInode(*fileDescriptorTable, iNodeIndex);
         printf("existingFdIndex: %d\n", existingFdIndex);
         if (existingFdIndex != -1) {
-//            printf("Already exists!!!\n");
             // Make sure that it's marked in use
             FileDescriptorTable_markInUse(fileDescriptorTable, existingFdIndex);
-            printf("%s already open.  Returning fd: %d\n", name, existingFdIndex);
             // The file is already in_use!!!!!!  So we just return it's FD.
             return existingFdIndex;
+            //return -1;  // Can't open file twice
         }
     }
 
     // Add an entry to the in_use FD table
     int fdIndex = FileDescriptorTable_getOpenIndex(*fileDescriptorTable);
+
+    if (fdIndex == -1) {
+        // FD Table is full!
+        printf("Cannot open file.  Too many files already open!\n");
+        return -1;
+    }
 
     printf("fdIndex: %d\n", fdIndex);
 
@@ -181,7 +196,6 @@ int sfs_fopen(char *name) {
 
         // Get an empty index on the iNode table
         iNodeIndex = INodeTable_getOpenIndex(*iNodeTable);
-        printf("New iNode Index: %d\n", iNodeIndex);
 
         // Get the iNode and give it blank data!
         INode* iNode = &iNodeTable->i_node[iNodeIndex];
@@ -189,9 +203,6 @@ int sfs_fopen(char *name) {
 
         // Mark the iNode space full
         INodeTable_markClosed(iNodeTable, iNodeIndex);
-
-        // Write the iNode to the hard drive
-//        save_i_node_to_disk(iNodeIndex, iNode);
 
         DirectoryCache_print(*directoryCache);
 
@@ -204,17 +215,9 @@ int sfs_fopen(char *name) {
         }
 
         DirectoryCache_markClosed(directoryCache, directoryIndex);
-        printf("Directory object for %s has iNodeIndex %d\n", name, iNodeIndex);
-        printf("Before: %d\n", iNodeIndex);
-        directoryCache->directory[directoryIndex].i_node_index = (int) iNodeIndex;
-        printf("After: %d\n", directoryCache->directory[directoryIndex].i_node_index);
-
-        printf("Test directoryIndex: %d\n", directoryIndex);
-        printf("Currentname: %s\n", directoryCache->directory[directoryIndex].name);
+        directoryCache->directory[directoryIndex].i_node_index = iNodeIndex;
         // Copy the name
         strcpy(directoryCache->directory[directoryIndex].name, name);
-        printf("Complete strcpy()\n");
-        // TODO: Copy directory to disk
     }
 
     printf("iNodeIndex: %d\n", iNodeIndex);
@@ -241,13 +244,17 @@ int sfs_fopen(char *name) {
 int sfs_fclose(int fileID){
     FileDescriptorTable_print(*fileDescriptorTable);
 
-    // Error if already closed
+//    // Error if already closed
     if (FileDescriptorTable_isNotInUse(*fileDescriptorTable, fileID)) {
         return -1;
     }
 
     // Mark spot empty on fd table
     FileDescriptorTable_markNotInUse(fileDescriptorTable, fileID);
+
+    // Remove data from FD table
+    fileDescriptorTable->fd[fileID].read_write_pointer = 0;
+    fileDescriptorTable->fd[fileID].i_node_number = 0;
 
     // Success!
 	return 0;
@@ -258,29 +265,80 @@ int sfs_fclose(int fileID){
  * read characters from disk into buf
  */
 int sfs_fread(int fileID, char *buf, int length){
+    printf("Reading %d bytes from file %d\n", length, fileID);
+
     // Return if file is closed
     if (FileDescriptorTable_isNotInUse(*fileDescriptorTable, fileID)) {
         printf("File %d is closed.  Cannot read...\n", fileID);
         return 0;
     }
 
-    printf("Reading %d bytes from file %d\n", length, fileID);
+
 
     FileDescriptor* fd = &fileDescriptorTable->fd[fileID];
     INode iNode = iNodeTable->i_node[fd->i_node_number];
 
+    printf("Reading iNode:\n");
+    INode_print(iNode);
+
     // Output is the total data that we'have read...
     int output = 0;
 
-    int amountLeftToRead = length;
+    int amountLeftToRead;
+    if ((fd->read_write_pointer + length + 1) > iNode.size) {
+        printf("size: %d, rwpointer: %d\n", iNode.size, fd->read_write_pointer);
+        // Read what's left of the file
+        amountLeftToRead = iNode.size - fd->read_write_pointer;
+    } else {
+        // Read the whole file
+        amountLeftToRead = length;
+    }
+
+    printf("AmountLeftToRead: %d\n", amountLeftToRead);
+
+    // We mighth have to access the indirect block
+    IndirectBlockPointer* indirectBlockPointer = NULL;
+
+    // Allocate an empty block
+    void* data = malloc(DISK_BLOCK_SIZE);
 
     while (amountLeftToRead > 0) {
-        //printf("i: %d\n", i);
-
         printf("Current RW pointer %d\n", fd->read_write_pointer);
 
         int currentBlockIndex = fd->read_write_pointer / DISK_BLOCK_SIZE;
         int startingIndexOfBlock = fd->read_write_pointer % DISK_BLOCK_SIZE;
+
+        /*
+         * Begin indirect block setup.
+         */
+
+        int indexWhereDataGoesInIndirectBLock = -1;
+        // If the current block index is greater than 11, then we'll have to hit the indirect block
+        if (currentBlockIndex >= BLOCKS_PER_I_NODE) {
+            // Ok, we're hitting the indirect pointer.
+            printf("Hitting indirect pointer\n");
+
+            // This is the index within the indirect block
+            indexWhereDataGoesInIndirectBLock = currentBlockIndex - BLOCKS_PER_I_NODE;
+
+            // Now, we see if the iNode already has an indirect block.
+            if (indirectBlockPointer) {
+                // We already have an indirect block in memory, so we'll use it
+                printf("IndirectBlockPointer already in memory.\n");
+            } else {
+                printf("Loading indirect block %d\n", iNode.ind_pointer);
+                // There's no indirect block in memory
+                indirectBlockPointer = malloc(DISK_BLOCK_SIZE);
+
+                // Load the indirect block from disk
+                read_data_block(iNode.ind_pointer, indirectBlockPointer);
+            }
+
+        }
+
+        /*
+         * End indirect block setup.
+         */
 
         int amountToRead;
         if (amountLeftToRead > (DISK_BLOCK_SIZE - startingIndexOfBlock)) {
@@ -289,19 +347,25 @@ int sfs_fread(int fileID, char *buf, int length){
             amountToRead = amountLeftToRead;
         }
 
-        // Extract the data from the disk
+        /*
+         * Extract the data from the disk
+         */
+        // Empty the data buffer
+        memset(data, '\0', DISK_BLOCK_SIZE);
 
-        // Allocate an empty block
-        void* data = malloc(DISK_BLOCK_SIZE);
-        // Fill the block with the disk data
-
-        printf("File %d reading %d bytes from disk block %d\n", fileID, amountToRead, iNode.pointer[currentBlockIndex]);
-
-        read_data_block(iNode.pointer[currentBlockIndex], data);
+        // Read data from the correct source
+        printf("Test: %d\n", indexWhereDataGoesInIndirectBLock);
+        if (indexWhereDataGoesInIndirectBLock > -1) {
+            printf("File %d reading %d bytes indirectly from disk block %d\n", fileID, amountToRead, indirectBlockPointer->block[indexWhereDataGoesInIndirectBLock]);
+            read_data_block(indirectBlockPointer->block[indexWhereDataGoesInIndirectBLock], data);
+        } else {
+            printf("File %d reading %d bytes from disk block %d\n", fileID, amountToRead, iNode.pointer[currentBlockIndex]);
+            // Read direct from iNode
+            read_data_block(iNode.pointer[currentBlockIndex], data);
+        }
 
         // Copy the desired amount of memory into the output buffer
-        memcpy(buf, data + startingIndexOfBlock, amountToRead);
-        //printf("Finished %d\n", i);
+        memcpy(buf, data + startingIndexOfBlock, (size_t) amountToRead);
 
         // Advance the rw pointer
         fd->read_write_pointer += amountToRead;
@@ -314,7 +378,12 @@ int sfs_fread(int fileID, char *buf, int length){
         buf += amountToRead;
     }
 
-    //printf("Finished copying blocks...\n");
+    // Free the data block
+    free(data);
+
+    if (indirectBlockPointer) {
+        free(indirectBlockPointer);
+    }
 
     printf("Finished reading %d bytes.\n", output);
 
@@ -337,12 +406,59 @@ int sfs_fwrite(int fileID, const char *buf, int length){
     int totalBytesWritten = 0;
     int amountLeftToWrite = length;
 
-    while (amountLeftToWrite > 0) {
+    // We mighth have to access the indirect block
+    IndirectBlockPointer* indirectBlockPointer = NULL;
 
-        printf("Current RW pointer %d\n", fileDescriptor->read_write_pointer);
+    // Create an empty buffer
+    void* newBuffer = malloc(DISK_BLOCK_SIZE);
+
+    while (amountLeftToWrite > 0) {
+        // Empty the contents of newBuffer
+        memset(newBuffer, '\0', DISK_BLOCK_SIZE);
 
         int currentBlockIndex = fileDescriptor->read_write_pointer / DISK_BLOCK_SIZE;
         int startingIndexOfBlock = fileDescriptor->read_write_pointer % DISK_BLOCK_SIZE;
+
+        /*
+         * Begin indirect block setup
+         */
+
+        int isUsingIndirectBlock = currentBlockIndex >= BLOCKS_PER_I_NODE;
+        int indexWhereDataGoesInIndirectBLock = -1;
+        // If the current block index is greater than 11, then we'll have to hit the indirect block
+        if (isUsingIndirectBlock) {
+            // Ok, we're hitting the indirect pointer.
+            printf("Hitting indirect pointer\n");
+
+            // This is the index within the indirect block
+            indexWhereDataGoesInIndirectBLock = currentBlockIndex - BLOCKS_PER_I_NODE;
+
+            // Now, we see if the iNode already has an indirect block.
+            if (indirectBlockPointer) {
+                // We already have an indirect block in memory, so we'll use it
+                printf("IndirectBlockPointer already in memory.\n");
+            } else {
+                // There's no indirect block in memory
+                indirectBlockPointer = malloc(DISK_BLOCK_SIZE);
+
+                // We either have to load the indirect block from disk, or create a new one
+                if (fileINode->ind_pointer > 0) {
+                    printf("File already has indirect pointer %d\n", fileINode->ind_pointer);
+                    // One already exists, so we'll load the data
+                    read_data_block(fileINode->ind_pointer, indirectBlockPointer);
+                } else {
+                    // Find an empty index to save it
+                    fileINode->ind_pointer = FreeBitMap_getFreeBit(*freeBitMap);
+                    FreeBitMap_markBitUnfree(freeBitMap, fileINode->ind_pointer);
+                    printf("Reserved block %d for an indirect pointer.\n", fileINode->ind_pointer);
+                }
+            }
+
+        }
+
+        /*
+         * End indirect block setup
+         */
 
         int amountToWrite;
         if (amountLeftToWrite > (DISK_BLOCK_SIZE - startingIndexOfBlock)) {
@@ -350,9 +466,6 @@ int sfs_fwrite(int fileID, const char *buf, int length){
         } else {
             amountToWrite = amountLeftToWrite;
         }
-
-//        printf("CurrentblockIndex = %d, startingIndexOfBlock: %d, amountLeftToWrite: %d, amountToWrite: %d\n",
-//               currentBlockIndex, startingIndexOfBlock, amountLeftToWrite, amountToWrite);
 
         int newBlockDiskIndex;
         int blockIsNew;
@@ -368,26 +481,35 @@ int sfs_fwrite(int fileID, const char *buf, int length){
             blockIsNew = 1;
         }
 
-        // Save the new index to the iNode
-        fileINode->pointer[currentBlockIndex] = newBlockDiskIndex;
-
-        // Create an empty buffer
-        void* newBuffer = malloc(DISK_BLOCK_SIZE);
+        // Save the new index to the iNode or the indirect block
+        if (isUsingIndirectBlock) {
+            // We have to write the pointer to the indirect block
+            indirectBlockPointer->block[indexWhereDataGoesInIndirectBLock] = newBlockDiskIndex;
+        } else {
+            // We write the pointer to the iNode
+            fileINode->pointer[currentBlockIndex] = newBlockDiskIndex;
+        }
 
         // If the block is already partially full, then we need to load the old data
         if (!blockIsNew) {
+            printf("Block is not new.\n");
             read_data_block(newBlockDiskIndex, newBuffer);
         }
 
         // Copy the desired amount of data onto it
-        memcpy(newBuffer + startingIndexOfBlock, buf, amountToWrite);
+        memcpy(newBuffer + startingIndexOfBlock, buf, (size_t) amountToWrite);
 
         printf("File %d writing %d bytes to disk block %d\n", fileID, amountToWrite, newBlockDiskIndex);
 
         // Write the new buffer to the hard drive
-        write_data_block(newBlockDiskIndex, newBuffer);
+//        if (newBlockDiskIndex >= (DISK_BLOCK_COUNT - DATA_BLOCK_TABLE_INDEX)) {
+//            printf("Disk is full!\n");
+//            // Disk is full
+//            return -1;
+//            //break;
+//        }
 
-//        printf("File %d: Writing %d bytes to block %d.\n",fileID, amountToWrite, newBlockDiskIndex);
+        write_data_block(newBlockDiskIndex, newBuffer);
 
         // Save how much we have written to the file pointer
         fileDescriptor->read_write_pointer += amountToWrite;
@@ -405,14 +527,20 @@ int sfs_fwrite(int fileID, const char *buf, int length){
         }
     }
 
-    // Save the updated iNode to disk
-//    save_i_node_to_disk(fileDescriptor->i_node_number, fileINode);
+    if (indirectBlockPointer) {
+        // Write the data block to disk
+        write_data_block(fileINode->ind_pointer, indirectBlockPointer);
+        free(indirectBlockPointer);
+    }
 
-    // Save the free bitmap to disk with updated info
-//    save_free_bitmap_to_disk(freeBitMap);
+    // Free the new buffer
+    free(newBuffer);
 
     // Save our cached version of the file system
     save_local_file_system_to_disk(freeBitMap, iNodeTable, directoryCache);
+
+    printf("Finished writing iNode:\n");
+    INode_print(*fileINode);
 
 	return totalBytesWritten;
 }
@@ -439,33 +567,57 @@ int sfs_remove(char *file) {
     printf("Begin removing %s.\n", file);
 
     // First, grab the iNode and delete it's data blocks from memory
+    int directoryIndex = -1;
     int i;
     for (i = 0; i < 10; i++) {
         if (strcmp(directoryCache->directory[i].name, file) == 0) {
             // We found it
+            directoryIndex = i;
             break;
         }
     }
 
-    int iNodeIndex = directoryCache->directory[i].i_node_index;
+    if (directoryIndex == -1) {
+        // Can't delete a non-existing file
+        return -1;
+    }
+
+    int iNodeIndex = directoryCache->directory[directoryIndex].i_node_index;
 
     INode iNode = iNodeTable->i_node[iNodeIndex];
     for (i = 0; i < BLOCKS_PER_I_NODE; i++) {
-        // Erase the block from the disk
-        erase_disk_block(iNode.pointer[i]);
-        // Mark block free
-        FreeBitMap_markBitFree(freeBitMap, iNode.pointer[i]);
+        if (iNode.pointer[i] > -1) {
+            // Erase the block from the disk
+            erase_data_block(iNode.pointer[i]);
+            // Mark block free
+            FreeBitMap_markBitFree(freeBitMap, iNode.pointer[i]);
+        }
+    }
+
+    if (iNode.ind_pointer > -1) {
+        // Delete the blocks from the indirect pointer
+        IndirectBlockPointer* indirectPointer = malloc(DISK_BLOCK_SIZE);
+        read_data_block(iNode.ind_pointer, indirectPointer);
+
+        // Delete the indirectly pointed blocks
+        for (i = 0; i < INDIRECT_BLOCK_POINTER_SIZE; i++) {
+            if (indirectPointer->block[i] > 0) {
+                // Erase the block from the disk
+                erase_data_block(indirectPointer->block[i]);
+                // Mark block free
+                FreeBitMap_markBitFree(freeBitMap, indirectPointer->block[i]);
+            }
+        }
+
+        free(indirectPointer);
     }
 
 
-//    // Then, delete the iNode from disk
-//    delete_i_node_from_disk(iNodeIndex);
-//
-//    // Then, remove the file descriptor from memory
-//    // TODO
-//
-//    // Then, save the updated free bitmap to disk
-//    save_free_bitmap_to_disk(freeBitMap);
+    // Delete the iNode
+    INodeTable_deleteINode(iNodeTable, iNodeIndex);
+
+    // Delete the directory object
+    DirectoryCache_deleteIndex(directoryCache, directoryIndex);
 
     // Save our cached version of the file system
     save_local_file_system_to_disk(freeBitMap, iNodeTable, directoryCache);

@@ -5,20 +5,12 @@
 #ifndef ASSIGNMENT_3_FREE_BITMAP_H
 #define ASSIGNMENT_3_FREE_BITMAP_H
 
+#include <stdio.h>
 #include "../constants.h"
 
 typedef struct free_bitmap {
     char bit[DISK_BLOCK_COUNT];
 } FreeBitMap;
-
-void FreeBitMap_print(FreeBitMap bitMap) {
-    printf("Free Bitmap {\n");
-    int i;
-    for (i=0 ; i < DISK_BLOCK_COUNT; i++) {
-        printf("(%d, free: %d),\n", i, FreeBitMap_isBitFree(bitMap, i));
-    }
-    printf("}\n");
-}
 
 /**
  * Mark a particular index as unfree
@@ -67,5 +59,15 @@ int FreeBitMap_getFreeBitAndMarkUnfree(FreeBitMap* map) {
     FreeBitMap_markBitUnfree(map, output);
     return output;
 }
+
+void FreeBitMap_print(FreeBitMap bitMap) {
+    printf("Free Bitmap {\n");
+    int i;
+    for (i=0 ; i < DISK_BLOCK_COUNT; i++) {
+        printf("(%d, free: %d),\n", i, FreeBitMap_isBitFree(bitMap, i));
+    }
+    printf("}\n");
+}
+
 
 #endif //ASSIGNMENT_3_FREE_BITMAP_H

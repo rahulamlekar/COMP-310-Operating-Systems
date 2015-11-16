@@ -11,8 +11,8 @@ typedef struct i_node {
     int uid;
     int gid;
     int size;
-    int pointer[BLOCKS_PER_I_NODE];
     int ind_pointer;
+    int pointer[BLOCKS_PER_I_NODE];
 } INode;
 
 void INode_copy(INode* dest, INode* source) {
@@ -35,7 +35,7 @@ void INode_new(INode* iNode) {
     iNode->size = 0;
     iNode->gid = 0;
     iNode->uid = 0;
-    iNode->ind_pointer = 0;
+    iNode->ind_pointer = -1; // Initialize to -1 so that we know that there isn't one
     iNode->link_cnt = 0;
     iNode->mode = 0;
 
@@ -43,6 +43,21 @@ void INode_new(INode* iNode) {
     for (j = 0; j < BLOCKS_PER_I_NODE; j++) {
         iNode->pointer[j] = -1;
     }
+}
+
+void INode_print(INode iNode) {
+    printf("INode {\n");
+    printf("    mode: %d\n", iNode.mode);
+    printf("    link_cnt: %d\n", iNode.link_cnt);
+    printf("    uid: %d\n", iNode.uid);
+    printf("    gid: %d\n", iNode.gid);
+    printf("    size: %d\n", iNode.size);
+    printf("    ind_pointer: %d\n", iNode.ind_pointer);
+    int i;
+    for (i = 0; i < BLOCKS_PER_I_NODE; i++) {
+        printf("    pointer %d: %d\n", i, iNode.pointer[i]);
+    }
+    printf("}\n");
 }
 
 #endif //ASSIGNMENT_3_I_NODE_H

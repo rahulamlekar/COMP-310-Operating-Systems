@@ -35,6 +35,19 @@ int DirectoryCache_getOpenIndex(DirectoryCache table) {
     return -1;
 }
 
+void DirectoryCache_deleteIndex(DirectoryCache* cache, int index) {
+    // Mark it open
+    DirectoryCache_markOpen(cache, index);
+    // Delete the data
+    cache->directory[index].i_node_index = 0;
+    strcpy(cache->directory[index].name, "");
+
+    // Advance the readindex if possible
+    if (cache->readIndex == index) {
+        cache->readIndex = (cache->readIndex + 1) % I_NODE_COUNT;
+    }
+}
+
 int DirectoryCache_getDirectoryINodeIndex(DirectoryCache* cache, char *name) {
     int i;
     for (i = 0; i < I_NODE_COUNT; i++) {
@@ -54,7 +67,7 @@ int DirectoryCache_getDirectoryINodeIndex(DirectoryCache* cache, char *name) {
 void DirectoryCache_print(DirectoryCache cache) {
     int i;
     for (i = 0; i < I_NODE_COUNT; i++) {
-        printf("Directory: {name: \"%s\", i_node_index: %d } open: %d\n", cache.directory[i].name, cache.directory[i].i_node_index, cache.open[i]);
+        printf("Directory: {name: \"%s\", i_node_index: %d } open: %d\n", cache.directory[i].name, cache.directory[i].i_node_index, DirectoryCache_isOpen(cache, i));
     }
 }
 

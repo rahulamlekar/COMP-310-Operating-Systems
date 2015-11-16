@@ -11,5 +11,9 @@ typedef struct indirect_block_pointer {
     int block[DISK_BLOCK_SIZE / sizeof(int)];
 } IndirectBlockPointer;
 
+int indirectBlockIndex(int pointerIndex) {
+    return pointerIndex - BLOCKS_PER_I_NODE;
+}
+
 
 #endif //ASSIGNMENT_3_INDIRECT_BLOCK_POINTER_H

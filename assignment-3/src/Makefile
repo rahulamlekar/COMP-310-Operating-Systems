@@ -21,10 +21,10 @@ $(EXECUTABLE): $(OBJECTS)
 	gcc $(CFLAGS) $< -o $@
 
 test1: $(OBJECTS_TEST1)
-	gcc $(OBJECTS_TEST1) $(LDFLAGS) -o sfs_test1
+	gcc $(OBJECTS_TEST1) $(LDFLAGS) -o sfs_fogarty_test1
 
 test2: $(OBJECTS_TEST2)
-	gcc $(OBJECTS_TEST2) $(LDFLAGS) -o sfs_test2
+	gcc $(OBJECTS_TEST2) $(LDFLAGS) -o sfs_fogarty_test2
 
 clean:
-	rm -rf *.o *~ $(EXECUTABLE) sfs_test1 sfs_test2
+	rm -rf *.o *~ $(EXECUTABLE) sfs_fogarty_test1 sfs_fogarty_test2

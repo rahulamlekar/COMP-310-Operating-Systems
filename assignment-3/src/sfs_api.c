@@ -574,7 +574,8 @@ int sfs_remove(char *file) {
 
         // Delete the indirectly pointed blocks
         for (i = 0; i < INDIRECT_BLOCK_POINTER_SIZE; i++) {
-            if (indirectPointer->block[i] > 0) {
+            if (indirectPointer->block[i] > 0 && indirectPointer->block[i] < DISK_BLOCK_COUNT) {
+                printf("Clearing indirect pointed block: %d\n", indirectPointer->block[i]);
                 // Erase the block from the disk
                 erase_data_block(indirectPointer->block[i]);
                 // Mark block free

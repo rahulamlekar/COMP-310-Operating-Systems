@@ -162,84 +162,64 @@ int sfs_fopen(char *name) {
         return -1;
     }
 
-    FileDescriptorTable_print(*fileDescriptorTable);
-
-    // Get the iNode index from the Directory cache
-    int iNodeIndex = DirectoryCache_getDirectoryINodeIndex(directoryCache, name);
-
-    if (iNodeIndex != -1) {
-        // The iNode already exists.  So, let's see if it's already open
-        int existingFdIndex = FileDescriptorTable_getIndexOfInode(*fileDescriptorTable, iNodeIndex);
-        if (existingFdIndex != -1) {
-            // Make sure that it's marked in use
-            FileDescriptorTable_markInUse(fileDescriptorTable, existingFdIndex);
-            // The file is already in_use!!!!!!  So we just return it's FD.
-            //return existingFdIndex;
-            return -1;  // Can't open file twice
-        }
-    }
-
-    // Add an entry to the in_use FD table
-    int fdIndex = FileDescriptorTable_getOpenIndex(*fileDescriptorTable);
-
-    if (fdIndex == -1) {
-        // FD Table is full!
-        printf("Cannot open file.  Too many files already open!\n");
-        return -1;
-    }
-
-    //printf("fdIndex: %d\n", fdIndex);
-
-    // Mark the new index as closed
-    FileDescriptorTable_markInUse(fileDescriptorTable, fdIndex);
-
-    if (iNodeIndex == -1) {
-        printf("CREATING BRAND NEW FILE.\n");
-        // Getting the iNode index failed.  So, the file doesn't exist!  We must create
-        // a new file!
-
-        // Get an empty index on the iNode table
-        iNodeIndex = INodeTable_getOpenIndex(*iNodeTable);
-
-        // Get the iNode and give it blank data!
-        INode* iNode = &iNodeTable->i_node[iNodeIndex];
-        INode_new(iNode);
-
-        // Mark the iNode space full
-        INodeTable_markClosed(iNodeTable, iNodeIndex);
-
-        DirectoryCache_print(*directoryCache);
-
-        // Make a directory object and add it to the disk
-        int directoryIndex = DirectoryCache_getOpenIndex(*directoryCache);
-
-        if (directoryIndex == -1) {
-            // Error.  Too many directories in file system!!!
-            return -1;
-        }
-
+    int directoryIndex = DirectoryCache_getNameIndex(directoryCache, name);
+    if (directoryIndex == -1) {
+        // The directory doesn't exist, so we will create it
+        directoryIndex = DirectoryCache_getOpenIndex(*directoryCache);
         DirectoryCache_markClosed(directoryCache, directoryIndex);
-        directoryCache->directory[directoryIndex].i_node_index = iNodeIndex;
+
         // Copy the name
         strcpy(directoryCache->directory[directoryIndex].name, name);
+        directoryCache->directory[directoryIndex].i_node_index = -1;
     }
 
-    // Copy the iNode index to the table value
-    fileDescriptorTable->fd[fdIndex].i_node_number = iNodeIndex;
-    fileDescriptorTable->fd[fdIndex].read_write_pointer = iNodeTable->i_node[iNodeIndex].size;
+    printf("opening directory: %d\n", directoryIndex);
 
-    // Save our cached version of the file system
-    save_local_file_system_to_disk(freeBitMap, iNodeTable, directoryCache);
+    // Configure the iNode if Necessary
+    int iNodeIndex = directoryCache->directory[directoryIndex].i_node_index;
+    if (iNodeIndex == -1) {
+        iNodeIndex = INodeTable_getOpenIndex(*iNodeTable);
+        INodeTable_markClosed(iNodeTable, iNodeIndex);
 
-    // Return the index from the in_use file table
-	return fdIndex;
+        INode_new(&iNodeTable->i_node[iNodeIndex]);
+        directoryCache->directory[directoryIndex].i_node_index = iNodeIndex;
+    }
+    FileDescriptorTable_print(*fileDescriptorTable);
+    printf("opening iNode: %d\n", iNodeIndex);
+
+    // Configure the FD table
+    int fdIndex = FileDescriptorTable_getIndexOfInode(*fileDescriptorTable, iNodeIndex);
+    printf("test fdIndex: %d\n", fdIndex);
+    if (fdIndex == -1) {
+        // Get a new fd table index
+        fdIndex = FileDescriptorTable_getOpenIndex(*fileDescriptorTable);
+        printf("new fdIndex: %d\n", fdIndex);
+        FileDescriptorTable_markInUse(fileDescriptorTable, fdIndex);
+
+        // Point to the iNode
+        fileDescriptorTable->fd[fdIndex].i_node_number = iNodeIndex;
+        // Open in append mode
+        fileDescriptorTable->fd[fdIndex].read_write_pointer = iNodeTable->i_node[iNodeIndex].size;
+    } else {
+        // If we don't do this, then the 0 index gets messed up!
+        FileDescriptorTable_markInUse(fileDescriptorTable, fdIndex);
+    }
+
+    printf("File %d opened.\n", fdIndex);
+
+    DirectoryCache_print(*directoryCache);
+    FileDescriptorTable_print(*fileDescriptorTable);
+
+    return fdIndex;
 }
 
 
 /**
  * closes the given file
  */
-int sfs_fclose(int fileID){
+int sfs_fclose(int fileID) {
+    fprintf(stderr, "Closing file %d\n", fileID);
+
     FileDescriptorTable_print(*fileDescriptorTable);
 
 //    // Error if already closed
@@ -286,7 +266,7 @@ int sfs_fread(int fileID, char *buf, int length){
         // Read what's left of the file
         amountLeftToRead = iNode.size - fd->read_write_pointer;
     } else {
-        // Read the whole file
+//        // Read the whole file
         amountLeftToRead = length;
     }
 
@@ -305,7 +285,7 @@ int sfs_fread(int fileID, char *buf, int length){
     void* data = malloc(DISK_BLOCK_SIZE);
 
     while (amountLeftToRead > 0) {
-        //printf("Current RW pointer %d\n", fd->read_write_pointer);
+        printf("Current RW pointer %d\n", fd->read_write_pointer);
 
         int currentBlockIndex = fd->read_write_pointer / DISK_BLOCK_SIZE;
         int startingIndexOfBlock = fd->read_write_pointer % DISK_BLOCK_SIZE;
@@ -355,9 +335,9 @@ int sfs_fread(int fileID, char *buf, int length){
 
     free(indirectBlockPointer);
 
-    printf("Finished reading %d bytes.\n", output);
+    printf("Finished reading %d of %d requested bytes.\n", output, length);
 
-	return length;
+	return output;
 }
 
 
@@ -471,7 +451,7 @@ int sfs_fwrite(int fileID, const char *buf, int length){
 
         // Record file size change
         if (fileDescriptor->read_write_pointer > fileINode->size) {
-            fileINode->size += amountToWrite;
+            fileINode->size = fileDescriptor->read_write_pointer;
         }
     }
 

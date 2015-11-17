@@ -116,7 +116,8 @@ main(int argc, char **argv)
     }
     filesize[i] = (rand() % (MAX_BYTES-MIN_BYTES)) + MIN_BYTES;
   }
-  sfs_remove(names[0]);
+  // We were told to remove this
+  //sfs_remove(names[0]);
   for (i = 0; i < 2; i++) {
     for (j = i + 1; j < 2; j++) {
       if (fds[i] == fds[j]) {

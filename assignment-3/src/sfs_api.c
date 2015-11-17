@@ -166,6 +166,11 @@ int sfs_fopen(char *name) {
     if (directoryIndex == -1) {
         // The directory doesn't exist, so we will create it
         directoryIndex = DirectoryCache_getOpenIndex(*directoryCache);
+        if (directoryIndex == -1) {
+            printf("Directory index full!\n");
+            // No more directories
+            return -1;
+        }
         DirectoryCache_markClosed(directoryCache, directoryIndex);
 
         // Copy the name
@@ -179,6 +184,11 @@ int sfs_fopen(char *name) {
     int iNodeIndex = directoryCache->directory[directoryIndex].i_node_index;
     if (iNodeIndex == -1) {
         iNodeIndex = INodeTable_getOpenIndex(*iNodeTable);
+        if (iNodeIndex == -1) {
+            printf("iNode index full!\n");
+            // No more iNodes
+            return -1;
+        }
         INodeTable_markClosed(iNodeTable, iNodeIndex);
 
         INode_new(&iNodeTable->i_node[iNodeIndex]);
@@ -193,7 +203,11 @@ int sfs_fopen(char *name) {
     if (fdIndex == -1) {
         // Get a new fd table index
         fdIndex = FileDescriptorTable_getOpenIndex(*fileDescriptorTable);
-        printf("new fdIndex: %d\n", fdIndex);
+        if (fdIndex == -1) {
+            printf("FD index full!\n");
+            // No more file descriptors
+            return -1;
+        }
         FileDescriptorTable_markInUse(fileDescriptorTable, fdIndex);
 
         // Point to the iNode
@@ -218,6 +232,11 @@ int sfs_fopen(char *name) {
  * closes the given file
  */
 int sfs_fclose(int fileID) {
+    if (fileID < 0) {
+        printf("Invalid FileID!\n");
+        return -1;
+    }
+
     fprintf(stderr, "Closing file %d\n", fileID);
 
     FileDescriptorTable_print(*fileDescriptorTable);
@@ -234,6 +253,10 @@ int sfs_fclose(int fileID) {
     fileDescriptorTable->fd[fileID].read_write_pointer = 0;
     fileDescriptorTable->fd[fileID].i_node_number = 0;
 
+    printf("Post close:\n");
+
+    FileDescriptorTable_print(*fileDescriptorTable);
+
     // Success!
 	return 0;
 }
@@ -243,6 +266,10 @@ int sfs_fclose(int fileID) {
  * read characters from disk into buf
  */
 int sfs_fread(int fileID, char *buf, int length){
+//    if (fileID < 0) {
+//        printf("Invalid FileID!\n");
+//        return -1;
+//    }
     printf("Reading %d bytes from file %d\n", length, fileID);
 
 //    // Return if file is closed
@@ -345,6 +372,10 @@ int sfs_fread(int fileID, char *buf, int length){
  * write buf characters into disk
  */
 int sfs_fwrite(int fileID, const char *buf, int length){
+//    if (fileID < 0) {
+//        printf("Invalid FileID!\n");
+//        return -1;
+//    }
     printf("Start write procedure to write %d bytes to file %d\n", length, fileID);
 
     // Get the iNode of the desired file
@@ -368,6 +399,10 @@ int sfs_fwrite(int fileID, const char *buf, int length){
     if (fileINode->ind_pointer < 0) {
         // Create an index for the ind pointer
         fileINode->ind_pointer = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
+        if (fileINode->ind_pointer == -1) {
+            // No space left!
+            return -1;
+        }
     } else {
         // There already is an ind pointer, so we load from disk
         read_data_block(fileINode->ind_pointer, indirectBlock);

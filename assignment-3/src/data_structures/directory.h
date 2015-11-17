@@ -9,7 +9,7 @@
 #include "i_node.h"
 
 typedef struct directory {
-    char name[TOTAL_FILE_NAME_LENGTH];
+    char name[TOTAL_FILE_NAME_LENGTH+1];
     int i_node_index;
 } Directory;
 

@@ -36,7 +36,7 @@ void erase_data_block(int index) {
  */
 void write_data_blocks(void* data, int startingIndex, size_t size) {
     int numBlocks = bytesToBlockCount(size);
-    printf("Writing %d bytes to %d blocks.\n", size, numBlocks);
+    //printf("Writing %d bytes to %d blocks.\n", size, numBlocks);
     // Make a blank copy of the correct number of blocks
     void* dataGoingToDisk = malloc((size_t) numBlocks * DISK_BLOCK_SIZE);
     // Copy the incoming data to the temp copy
@@ -73,7 +73,7 @@ void load_directory_cache_from_disk(DirectoryCache* directoryCache) {
 
 
 void save_local_file_system_to_disk(FreeBitMap* bitmap, INodeTable* iNodeTable, DirectoryCache* directoryCache1) {
-    printf("Saving local filesystem to disk.\n");
+    //printf("Saving local filesystem to disk.\n");
     write_data_blocks(bitmap, FREE_BITMAP_BLOCK_INDEX, sizeof(FreeBitMap));
     write_data_blocks(iNodeTable, I_NODE_TABLE_BLOCK_INDEX, sizeof(INodeTable));
     write_data_blocks(directoryCache1, DIRECTORIES_BLOCK_INDEX, sizeof(DirectoryCache));

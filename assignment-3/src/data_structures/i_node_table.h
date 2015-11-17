@@ -10,7 +10,7 @@
 
 typedef struct i_node_table{
     INode i_node[I_NODE_COUNT];
-    char open[I_NODE_COUNT];
+    int open[I_NODE_COUNT];
 } INodeTable;
 
 void INodeTable_markOpen(INodeTable* table, int fileId) {
@@ -39,6 +39,13 @@ void INodeTable_deleteINode(INodeTable* table, int index) {
     INodeTable_isOpen(*table, index);
     // Clear the data
     INode_new(&table->i_node[index]);
+}
+
+void INodeTable_reset(INodeTable* table) {
+    int i;
+    for (i = 0; i < I_NODE_COUNT; i++) {
+        INodeTable_deleteINode(table, i);
+    }
 }
 
 #endif //ASSIGNMENT_3_I_NODE_TABLE_H

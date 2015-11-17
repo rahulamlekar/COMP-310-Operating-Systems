@@ -6,6 +6,7 @@
 #define ASSIGNMENT_3_DIRECTORY_CACHE_H
 
 #include <string.h>
+#include <stdio.h>
 #include "directory.h"
 
 typedef struct directory_cache {

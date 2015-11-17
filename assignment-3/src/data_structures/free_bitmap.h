@@ -9,7 +9,7 @@
 #include "../constants.h"
 
 typedef struct free_bitmap {
-    char bit[DISK_BLOCK_COUNT];
+    char bit[DISK_BLOCK_COUNT - DATA_BLOCK_TABLE_INDEX];
 } FreeBitMap;
 
 /**
@@ -41,7 +41,7 @@ int FreeBitMap_isBitFree(FreeBitMap map, int index) {
  */
 int FreeBitMap_getFreeBit(FreeBitMap map) {
     int i;
-    for (i = 0; i < DISK_BLOCK_COUNT; i++) {
+    for (i = 0; i < (DISK_BLOCK_COUNT - DATA_BLOCK_TABLE_INDEX); i++) {
         if (FreeBitMap_isBitFree(map, i)) {
             return i;
         }
@@ -63,7 +63,7 @@ int FreeBitMap_getFreeBitAndMarkUnfree(FreeBitMap* map) {
 void FreeBitMap_print(FreeBitMap bitMap) {
     printf("Free Bitmap {\n");
     int i;
-    for (i=0 ; i < DISK_BLOCK_COUNT; i++) {
+    for (i=0 ; i < (DISK_BLOCK_COUNT - DATA_BLOCK_TABLE_INDEX); i++) {
         printf("(%d, free: %d),\n", i, FreeBitMap_isBitFree(bitMap, i));
     }
     printf("}\n");

@@ -146,6 +146,8 @@ int write_blocks(int start_address, int nblocks, void *buffer)
     e = 0;
     s = 0;
 
+    printf("write_blocks(%d)\n", start_address);
+
     void* blockWrite = (void*) malloc(BLOCK_SIZE);
 
     /*Checks that the data requested is within the range of addresses of the disk*/

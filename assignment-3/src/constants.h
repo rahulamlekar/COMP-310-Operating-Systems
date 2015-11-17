@@ -5,13 +5,14 @@
 #ifndef ASSIGNMENT_3_CONSTANTS_H
 #define ASSIGNMENT_3_CONSTANTS_H
 
+#include <stddef.h>
+
 #define FILE_NAME_LENGTH 16
 #define TOTAL_FILE_NAME_LENGTH 20
 #define FILE_EXTENSION_LENGTH 3
 
 #define I_NODE_COUNT 100
 #define FILE_DESCRIPTOR_TABLE_SIZE 16
-#define DISK_BLOCK_CACHE_SIZE 64
 
 #define BLOCKS_PER_I_NODE 12
 
@@ -24,9 +25,9 @@
 // Disk indices of structures
 #define SUPER_BLOCK_INDEX 0 // 1 block large
 #define I_NODE_TABLE_BLOCK_INDEX 1 // 14 blocks large
-#define DIRECTORIES_BLOCK_INDEX 16 // 8 blocks large
-#define FREE_BITMAP_BLOCK_INDEX 24 // If this isn't high enough, then it overwrites data blocks!!!
-#define DATA_BLOCK_TABLE_INDEX 28
+#define DIRECTORIES_BLOCK_INDEX 32 // 8 blocks large
+#define FREE_BITMAP_BLOCK_INDEX 64 // If this isn't high enough, then it overwrites data blocks!!!
+#define DATA_BLOCK_TABLE_INDEX 128
 
 
 

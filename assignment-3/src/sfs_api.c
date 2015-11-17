@@ -439,6 +439,10 @@ int sfs_fwrite(int fileID, const char *buf, int length){
                 blockIsNew = 1;
                 // Get a new bitmap index
                 diskIndex = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
+                if (diskIndex == -1) {
+                    // Disk is full!
+                    break;
+                }
                 // Save it to the indirect block
                 indirectBlock->block[indirectBlockIndex(currentBlockIndex)] = diskIndex;
             }
@@ -449,6 +453,10 @@ int sfs_fwrite(int fileID, const char *buf, int length){
                 blockIsNew = 1;
                 // Get a new bitmap index
                 diskIndex = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
+                if (diskIndex == -1) {
+                    // Disk is full!
+                    break;
+                }
                 fileINode->pointer[currentBlockIndex] = diskIndex;
             }
         }
@@ -531,15 +539,7 @@ int sfs_remove(char *file) {
     printf("Begin removing %s.\n", file);
 
     // First, grab the iNode and delete it's data blocks from memory
-    int directoryIndex = -1;
-    int i;
-    for (i = 0; i < 10; i++) {
-        if (strcmp(directoryCache->directory[i].name, file) == 0) {
-            // We found it
-            directoryIndex = i;
-            break;
-        }
-    }
+    int directoryIndex = DirectoryCache_getNameIndex(directoryCache, file);
 
     if (directoryIndex == -1) {
         // Can't delete a non-existing file
@@ -549,6 +549,7 @@ int sfs_remove(char *file) {
     int iNodeIndex = directoryCache->directory[directoryIndex].i_node_index;
 
     INode iNode = iNodeTable->i_node[iNodeIndex];
+    int i;
     for (i = 0; i < BLOCKS_PER_I_NODE; i++) {
         if (iNode.pointer[i] > -1) {
             // Erase the block from the disk

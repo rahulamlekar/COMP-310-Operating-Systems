@@ -50,16 +50,6 @@ int FreeBitMap_getFreeBit(FreeBitMap map) {
     return -1;
 }
 
-
-/**
- * Find the first free index.  Mark it as unfree and return the index.
- */
-int FreeBitMap_getFreeBitAndMarkUnfree(FreeBitMap* map) {
-    int output = FreeBitMap_getFreeBit(*map);
-    FreeBitMap_markBitUnfree(map, output);
-    return output;
-}
-
 void FreeBitMap_print(FreeBitMap bitMap) {
     printf("Free Bitmap {\n");
     int i;

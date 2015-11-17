@@ -398,11 +398,13 @@ int sfs_fwrite(int fileID, const char *buf, int length){
     // Initialize indirect buffer if necessary
     if (fileINode->ind_pointer < 0) {
         // Create an index for the ind pointer
-        fileINode->ind_pointer = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
+        fileINode->ind_pointer = FreeBitMap_getFreeBit(*freeBitMap);
         if (fileINode->ind_pointer == -1) {
             // No space left!
             return -1;
         }
+        // mark the bit unfree
+        FreeBitMap_markBitUnfree(freeBitMap, fileINode->ind_pointer);
     } else {
         // There already is an ind pointer, so we load from disk
         read_data_block(fileINode->ind_pointer, indirectBlock);
@@ -438,11 +440,13 @@ int sfs_fwrite(int fileID, const char *buf, int length){
             if (diskIndex <= 0) {
                 blockIsNew = 1;
                 // Get a new bitmap index
-                diskIndex = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
+                diskIndex = FreeBitMap_getFreeBit(*freeBitMap);
                 if (diskIndex == -1) {
                     // Disk is full!
                     break;
                 }
+                // Mark it unfree
+                FreeBitMap_markBitUnfree(freeBitMap, diskIndex);
                 // Save it to the indirect block
                 indirectBlock->block[indirectBlockIndex(currentBlockIndex)] = diskIndex;
             }
@@ -452,14 +456,18 @@ int sfs_fwrite(int fileID, const char *buf, int length){
             if (diskIndex < 0) {
                 blockIsNew = 1;
                 // Get a new bitmap index
-                diskIndex = FreeBitMap_getFreeBitAndMarkUnfree(freeBitMap);
+                diskIndex = FreeBitMap_getFreeBit(*freeBitMap);
                 if (diskIndex == -1) {
                     // Disk is full!
                     break;
                 }
+                // Mark it unfree
+                FreeBitMap_markBitUnfree(freeBitMap, diskIndex);
                 fileINode->pointer[currentBlockIndex] = diskIndex;
             }
         }
+
+
 
         // If the block is already partially full, then we need to load the old data
         if (!blockIsNew) {

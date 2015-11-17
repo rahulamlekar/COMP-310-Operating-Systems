@@ -5,6 +5,7 @@
 #ifndef ASSIGNMENT_3_INDIRECT_BLOCK_POINTER_H
 #define ASSIGNMENT_3_INDIRECT_BLOCK_POINTER_H
 
+#include <stdio.h>
 #include "../constants.h"
 
 typedef struct indirect_block_pointer {

@@ -24,10 +24,10 @@
 
 // Disk indices of structures
 #define SUPER_BLOCK_INDEX 0 // 1 block large
-#define I_NODE_TABLE_BLOCK_INDEX 1 // 14 blocks large
-#define DIRECTORIES_BLOCK_INDEX 64 // 8 blocks large
-#define FREE_BITMAP_BLOCK_INDEX 128 // If this isn't high enough, then it overwrites data blocks!!!
-#define DATA_BLOCK_TABLE_INDEX 256
+#define I_NODE_TABLE_BLOCK_INDEX 1 // 16 blocks large
+#define DIRECTORIES_BLOCK_INDEX 17 // 8 blocks large
+#define FREE_BITMAP_BLOCK_INDEX 25 // 4 bytes large
+#define DATA_BLOCK_TABLE_INDEX 30
 
 
 

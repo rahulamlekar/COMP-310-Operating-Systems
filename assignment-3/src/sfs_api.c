@@ -300,7 +300,7 @@ int sfs_fread(int fileID, char *buf, int length){
     //printf("AmountLeftToRead: %d\n", amountLeftToRead);
 
     // We mighth have to access the indirect block
-    IndirectBlockPointer* indirectBlockPointer = malloc(DISK_BLOCK_SIZE);
+    IndirectBlockPointer* indirectBlockPointer = malloc(sizeof(IndirectBlockPointer));
     if (iNode.ind_pointer > -1) {
         read_data_block(iNode.ind_pointer, indirectBlockPointer);
         printf("Loaded indirect block: %d\n", iNode.ind_pointer);
@@ -396,13 +396,11 @@ int sfs_fwrite(int fileID, const char *buf, int length){
      * Set up the indirect block
      */
 
-    // We might have to access the indirect block
-    IndirectBlockPointer* indirectBlock = malloc(DISK_BLOCK_SIZE);
     // Initialize indirect buffer if necessary
     if (fileINode->ind_pointer < 0) {
         // Create an index for the ind pointer
         fileINode->ind_pointer = FreeBitMap_getFreeBit(*freeBitMap);
-        if (fileINode->ind_pointer == -1) {
+        if (fileINode->ind_pointer < 0) {
             // No space left!
             return -1;
         }

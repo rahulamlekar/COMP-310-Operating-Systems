@@ -27,6 +27,7 @@ void write_data_block(int index, void* buffer) {
  */
 void erase_data_block(int index) {
     void* empty = malloc(DISK_BLOCK_SIZE);
+    memset(empty, '\0', DISK_BLOCK_SIZE);
     write_data_block(index, empty);
     free(empty);
 }
@@ -39,6 +40,7 @@ void write_data_blocks(void* data, int startingIndex, size_t size) {
     //printf("Writing %d bytes to %d blocks.\n", size, numBlocks);
     // Make a blank copy of the correct number of blocks
     void* dataGoingToDisk = malloc((size_t) numBlocks * DISK_BLOCK_SIZE);
+    memset(dataGoingToDisk, '\0', (size_t) numBlocks * DISK_BLOCK_SIZE);
     // Copy the incoming data to the temp copy
     memcpy(dataGoingToDisk, data, size);
     // Write the temp copy to the disk
@@ -49,6 +51,7 @@ void write_data_blocks(void* data, int startingIndex, size_t size) {
 void read_data_blocks(void* buffer, size_t size, int diskIndex) {
     int numblocks = bytesToBlockCount(size);
     void* temp = malloc((size_t) numblocks * DISK_BLOCK_SIZE);
+    memset(temp, '\0', (size_t) numblocks * DISK_BLOCK_SIZE);
     // Copy the disk block to the temp memory
     read_blocks(diskIndex, numblocks, temp);
     // Copy the desired amount off of temp to output

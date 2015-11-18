@@ -110,17 +110,22 @@ void mksfs(int fresh) {
  */
 int sfs_getnextfilename(char *fname) {
 
-    int index = directoryCache->readIndex;
-    if (index < I_NODE_COUNT) {
-        // Copy the
-        strcpy(fname, directoryCache->directory[index].name);
-        // Increase the index for next time
-        directoryCache->readIndex++;
-        return 1;
-    } else {
-        // We have finished looping through the directory, so return 0
-        return 0;
+    int index;
+    for (index = directoryCache->readIndex; index < I_NODE_COUNT; index++) {
+        if (!DirectoryCache_isOpen(*directoryCache, index)) {
+            // Copy the
+            strcpy(fname, directoryCache->directory[index].name);
+            // Increase the index for next time
+            directoryCache->readIndex++;
+            return 1;
+        }
     }
+
+    // We're done
+    directoryCache->readIndex = 0;
+    return 0;
+
+
 }
 
 

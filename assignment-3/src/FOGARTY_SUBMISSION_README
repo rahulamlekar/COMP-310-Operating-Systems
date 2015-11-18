@@ -1,0 +1,14 @@
+COMP 310 - File System Assignment
+Andrew Fogarty - 260535895
+November 2015
+
+--------------------------------------
+
+This file system should only fail one test: the empty dir check at the very end of Test 2.
+
+I'm not sure why that happens.  The directory actually is empty, it just reports as not empty for some reason.
+
+The size tests will say "If the emulated disk contains just over 71680 bytes, this is OK
+".  The actual disk size is 1024 kilobytes.
+
+The first 30 or so kilobytes are reserved for the for the file system metadata (iNodes, etc.).

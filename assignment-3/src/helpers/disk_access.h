@@ -15,11 +15,9 @@
 #include "../data_structures/directory_cache.h"
 
 void read_data_block(int index, void* buffer) {
-    printf("read_data_block(%d)\n", index);
     read_blocks(DATA_BLOCK_TABLE_INDEX + index, 1, buffer);
 }
 void write_data_block(int index, void* buffer) {
-    printf("write_data_block(%d)\n", index);
     write_blocks(DATA_BLOCK_TABLE_INDEX + index, 1, buffer);
 }
 /**

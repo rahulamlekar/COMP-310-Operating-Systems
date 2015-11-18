@@ -27,7 +27,7 @@ int DirectoryCache_isOpen(DirectoryCache table, int fileId) {
 int DirectoryCache_getOpenIndex(DirectoryCache table) {
     int i;
     for (i = 0; i < I_NODE_COUNT; i++) {
-        if (DirectoryCache_isOpen(table, i)) {
+        if (DirectoryCache_isOpen(table, table.readIndex + i % I_NODE_COUNT)) {
             return i;
         }
     }

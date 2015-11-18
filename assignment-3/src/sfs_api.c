@@ -386,6 +386,9 @@ int sfs_fwrite(int fileID, const char *buf, int length){
     int totalBytesWritten = 0;
     int totalAmountLeftToWrite = length;
 
+    // We might have to access the indirect block
+    IndirectBlockPointer* indirectBlock = malloc(sizeof(IndirectBlockPointer));
+
     // Create an empty buffer
     void* newBuffer = malloc(DISK_BLOCK_SIZE);
 

@@ -114,10 +114,9 @@ main(int argc, char **argv)
       fprintf(stderr, "ERROR: file %s was opened twice\n", names[i]);
       error_count++;
     }
-    filesize[i] = (rand() % (MAX_BYTES-MIN_BYTES)) + MIN_BYTES;
+    filesize[i] = (rand() % (MAX_BYTES - MIN_BYTES)) + MIN_BYTES;
   }
-  // We were told to remove this
-  //sfs_remove(names[0]);
+  //sfs_remove(names[0]); // We are supposed to comment this out
   for (i = 0; i < 2; i++) {
     for (j = i + 1; j < 2; j++) {
       if (fds[i] == fds[j]) {

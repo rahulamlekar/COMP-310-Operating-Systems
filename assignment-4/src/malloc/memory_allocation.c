@@ -19,10 +19,9 @@ void* heapOrigin = NULL;
 void* my_brk = NULL;
 int heapSize = 0;
 
-/**
- * Pointer to the first free block
- */
+// Keep track of the first and last free blocks
 void* firstFreeBlock = NULL;
+void* lastFreeBlock = NULL;
 
 void *my_malloc(int size) {
     if (heapOrigin == NULL) {
@@ -34,6 +33,8 @@ void *my_malloc(int size) {
 
         // Test: Create a free block in the mem
         FreeBlock_construct(my_brk, size, NULL, NULL);
+        firstFreeBlock = my_brk;
+        lastFreeBlock = my_brk;
     }
 
     // Find out if there's an appropriately sized free block
@@ -41,18 +42,40 @@ void *my_malloc(int size) {
         // We have to allocate even more space to the
         my_brk = sbrk(size + 64);
         FreeBlock_construct(my_brk, size, NULL, NULL);
+
+        // Add this to the end of the linked list
+        FreeBlock_setNext(lastFreeBlock, my_brk);
+        FreeBlock_setPrev(my_brk, lastFreeBlock);
+        lastFreeBlock = my_brk;
     }
 
     printf("Test: %d\n", FreeBlockList_getLargestBlockSize(my_brk));
 
+    void* freeBlockThatWillBecomePopulated;
+    if (allocationPolicy == 1) {
+        // Allocate best first
+        freeBlockThatWillBecomePopulated = FreeBlockList_getSmallestAvailable(firstFreeBlock, size);
+    } else {
+        // Allocate first available
+        freeBlockThatWillBecomePopulated = FreeBlockList_getFirstAvailable(firstFreeBlock, size);
+    }
 
-    // If no such block, then allocate some new space and use it
-    void* newBlock = sbrk(size + 64);
-    heapSize += size + 64;
+    // Handle if it's the first in the list
+    if (freeBlockThatWillBecomePopulated == firstFreeBlock) {
+        firstFreeBlock = FreeBlock_getNext(firstFreeBlock);
+        FreeBlock_setPrev(firstFreeBlock, NULL);
+    }
 
+    // Handle if it's the last in the list
+    if (freeBlockThatWillBecomePopulated == lastFreeBlock) {
+        lastFreeBlock = FreeBlock_getPrev(lastFreeBlock);
+        FreeBlock_setNext(lastFreeBlock, NULL);
+    }
 
-    // Set up the new mem
+    // Allocate the relevant portion of the space
+    // TODO
 
+    // Return the public address of the new space, etc.
     return NULL;
 }
 

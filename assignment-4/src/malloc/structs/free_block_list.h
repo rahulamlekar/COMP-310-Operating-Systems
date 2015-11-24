@@ -91,4 +91,15 @@ void* FreeBlockList_getFreeBlockOfAddress(void* head, void* address) {
     return NULL;
 }
 
+void FreeBlockList_print(void* head) {
+    printf("--\n");
+    printf("Free Block List: \n");
+    void* next = head;
+    while (next != NULL) {
+        printf("Block %p, size: %d\n", next, FreeBlock_getSize(next));
+        next = FreeBlock_getNext(next);
+    }
+    printf("--\n");
+}
+
 #endif //ASSIGNMENT_4_FREE_BLOCK_LIST_H

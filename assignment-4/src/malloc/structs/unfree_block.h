@@ -10,6 +10,10 @@
 // The public pointer skips the size int
 const size_t PUBLIC_POINTER_OFFSET = sizeof(int);
 
+void* UnFreeBlock_publicPointerToPrivatePointer(void* publicPointer) {
+    return publicPointer - PUBLIC_POINTER_OFFSET;
+}
+
 size_t UnFreeBlock_getTotalSizeWithMetaData(int size) {
     return size + sizeof(int);
 }
@@ -24,6 +28,10 @@ int UnFreeBlock_getSize(void* block) {
 
 void* UnFreeBlock_getPublicPointer(void* block) {
     return block + PUBLIC_POINTER_OFFSET;
+}
+
+void UnFreeBlock_construct(void* block, int size) {
+    UnFreeBlock_setSize(block, size);
 }
 
 #endif //ASSIGNMENT_4_UNFREE_BLOCK_H

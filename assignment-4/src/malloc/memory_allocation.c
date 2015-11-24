@@ -23,6 +23,89 @@ int heapSize = 0;
 void* firstFreeBlock = NULL;
 void* lastFreeBlock = NULL;
 
+/*
+ * Utility Functions
+ */
+
+
+/**
+ * Remove a free block from the linked list
+ */
+void FreeBlockList_remove(void* block) {
+    if (firstFreeBlock == lastFreeBlock) {
+        // There is only 1 block
+        firstFreeBlock = NULL;
+        lastFreeBlock = NULL;
+    } else if (block == firstFreeBlock) {
+        // The block is the first block
+        firstFreeBlock = FreeBlock_getNext(block);
+        FreeBlock_setPrev(firstFreeBlock, NULL);
+    } else if (block == lastFreeBlock) {
+        // The block is the last block
+        lastFreeBlock = FreeBlock_getPrev(lastFreeBlock);
+        FreeBlock_setNext(lastFreeBlock, NULL);
+    } else {
+        // Remove somewhere from the list
+        void* prev = FreeBlock_getPrev(block);
+        void* next = FreeBlock_getNext(block);
+        // The previous points to the next
+        FreeBlock_setNext(prev, next);
+        // The next points to the previous
+        FreeBlock_setPrev(next, prev);
+    }
+}
+
+/**
+ * Insert a new free block into the appropriate place in the linked list
+ */
+void FreeBlockList_insert(void* newBlock) {
+    if (firstFreeBlock == NULL && lastFreeBlock == NULL) {
+        // This will be the only free block
+        firstFreeBlock = newBlock;
+        lastFreeBlock = newBlock;
+        FreeBlock_setNext(newBlock, NULL);
+        FreeBlock_setPrev(newBlock, NULL);
+    } else if (newBlock < firstFreeBlock) {
+        // This is the new first block
+        // Set the new block's prev and next
+        FreeBlock_setNext(newBlock, firstFreeBlock);
+        FreeBlock_setPrev(newBlock, NULL);
+        // Update the old first block
+        FreeBlock_setPrev(firstFreeBlock, newBlock);
+        // This is the new first free block
+        firstFreeBlock = newBlock;
+    } else if (newBlock > lastFreeBlock) {
+        // This is the new last block
+        FreeBlock_setPrev(newBlock, lastFreeBlock);
+        FreeBlock_setNext(newBlock, NULL);
+        FreeBlock_setNext(lastFreeBlock, newBlock);
+        lastFreeBlock = NULL;
+    } else {
+        // Insert somewhere in the list
+        void* current = firstFreeBlock;
+        void* next;
+        while (current != NULL) {
+            next = FreeBlock_getNext(current);
+            if (current < newBlock && next > newBlock) {
+                // The new block goes between current and next
+                FreeBlock_setPrev(newBlock, current);
+                FreeBlock_setNext(newBlock, next);
+                // Set the surrounding blocks
+                FreeBlock_setNext(current, newBlock);
+                FreeBlock_setPrev(next, newBlock);
+                return;
+            }
+            // Continue iterating
+            current = FreeBlock_getNext(current);
+        }
+    }
+}
+
+
+/*
+ * Public Functions
+ */
+
 void *my_malloc(int size) {
     if (heapOrigin == NULL) {
         // Get the heap origin
@@ -44,9 +127,7 @@ void *my_malloc(int size) {
         FreeBlock_construct(my_brk, size, NULL, NULL);
 
         // Add this to the end of the linked list
-        FreeBlock_setNext(lastFreeBlock, my_brk);
-        FreeBlock_setPrev(my_brk, lastFreeBlock);
-        lastFreeBlock = my_brk;
+        FreeBlockList_insert(my_brk);
     }
 
     printf("Test: %d\n", FreeBlockList_getLargestBlockSize(my_brk));
@@ -60,17 +141,10 @@ void *my_malloc(int size) {
         freeBlockThatWillBecomePopulated = FreeBlockList_getFirstAvailable(firstFreeBlock, size);
     }
 
-    // Handle if it's the first in the list
-    if (freeBlockThatWillBecomePopulated == firstFreeBlock) {
-        firstFreeBlock = FreeBlock_getNext(firstFreeBlock);
-        FreeBlock_setPrev(firstFreeBlock, NULL);
-    }
+    printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
 
-    // Handle if it's the last in the list
-    if (freeBlockThatWillBecomePopulated == lastFreeBlock) {
-        lastFreeBlock = FreeBlock_getPrev(lastFreeBlock);
-        FreeBlock_setNext(lastFreeBlock, NULL);
-    }
+    // Handle if it's the first in the list
+    FreeBlockList_remove(freeBlockThatWillBecomePopulated);
 
     // Allocate the relevant portion of the space
     // TODO

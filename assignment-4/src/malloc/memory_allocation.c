@@ -6,7 +6,6 @@
 #include <stdio.h>
 #include <unistd.h>
 #include "memory_allocation.h"
-#include "structs/memory.h"
 #include "utils/constants.h"
 #include "structs/free_block.h"
 #include "structs/free_block_list.h"
@@ -27,32 +26,6 @@ void* lastFreeBlock = NULL;
 /*
  * Utility Functions
  */
-
-void* FreeBlock_split(void* block, int newBlockSize) {
-    int oldFreeBlockSize = FreeBlock_getSize(block);
-    printf("Old free Block size: %d\n", oldFreeBlockSize);
-    if (oldFreeBlockSize == newBlockSize) {
-        printf("Equal case\n");
-        // They're the same size, so we destroy the free block
-        FreeBlockList_remove(block);
-        // Convert the free block into an unfree block
-        UnFreeBlock_construct(block, newBlockSize);
-        // Return the public pointer to this new block
-        return block;
-    } else {
-        printf("not equal case\n");
-        int freeBlockNewSize = oldFreeBlockSize - newBlockSize;
-        // Free block is smaller, so we just resize this free block
-        FreeBlock_setSize(block, freeBlockNewSize);
-        printf("Resized free block to %d bytes\n", freeBlockNewSize);
-        // The new unfree block starts at the next part
-        void* newUnfreeBlock = FreeBlock_getNextContiguousBlock(block);
-        // Construct the unfree block there
-        UnFreeBlock_construct(newUnfreeBlock, newBlockSize);
-        // Return the unfree block
-        return newUnfreeBlock;
-    }
-}
 
 /**
  * Remove a free block from the linked list
@@ -128,11 +101,39 @@ void FreeBlockList_insert(void* newBlock) {
 }
 
 
+void* FreeBlock_split(void* block, int newBlockSize) {
+    int oldFreeBlockSize = FreeBlock_getSize(block);
+    printf("Old free Block size: %d\n", oldFreeBlockSize);
+    if (oldFreeBlockSize == newBlockSize) {
+        printf("Equal case\n");
+        // They're the same size, so we destroy the free block
+        FreeBlockList_remove(block);
+        // Convert the free block into an unfree block
+        UnFreeBlock_construct(block, newBlockSize);
+        // Return the public pointer to this new block
+        return block;
+    } else {
+        printf("not equal case\n");
+        int freeBlockNewSize = oldFreeBlockSize - newBlockSize;
+        // Free block is smaller, so we just resize this free block
+        FreeBlock_setSize(block, freeBlockNewSize);
+        printf("Resized free block to %d bytes\n", freeBlockNewSize);
+        // The new unfree block starts at the next part
+        void* newUnfreeBlock = FreeBlock_getNextContiguousBlock(block);
+        // Construct the unfree block there
+        UnFreeBlock_construct(newUnfreeBlock, newBlockSize);
+        // Return the unfree block
+        return newUnfreeBlock;
+    }
+}
+
+
 /*
  * Public Functions
  */
 
 void *my_malloc(int size) {
+    printf("malloc(%d)\n", size);
     if (heapOrigin == NULL) {
         // Get the heap origin
         heapOrigin = sbrk(0);

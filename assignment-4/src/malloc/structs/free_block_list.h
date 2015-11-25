@@ -87,31 +87,37 @@ void* FreeBlockList_getFreeBlockOfAddress(void* head, void* address) {
     return NULL;
 }
 
-void FreeBlockList_mergeContiguousBlocks(void* block) {
+void FreeBlockList_mergeContiguousBlockLeft(void* block) {
     void* left = FreeBlock_getPrev(block);
-    void* right = FreeBlock_getNext(block);
-
     if (left != NULL && FreeBlock_getNextContiguousBlock(left) == block) {
         printf("Merging FreeBlock left!");
-
         // Set the next pointer of the
         FreeBlock_setNext(left, FreeBlock_getNext(block));
-
         // Set the size of the newly merged block
         FreeBlock_setSize(left, FreeBlock_getSize(left) + totalSizeOfFreeBlock((size_t) FreeBlock_getSize(block)));
-
-        block = left;
     }
+}
 
+void FreeBlockList_mergeContiguousBlockRight(void* block) {
+    void* right = FreeBlock_getNext(block);
     if (right != NULL && FreeBlock_getNextContiguousBlock(block) == right) {
         printf("Merging FreeBlock !");
-
         // Set the next pointer of the
         FreeBlock_setNext(block, FreeBlock_getNext(right));
-
         // Set the size of the newly merged block
         FreeBlock_setSize(block, FreeBlock_getSize(block) + totalSizeOfFreeBlock((size_t) FreeBlock_getSize(right)));
     }
+}
+
+/**
+ * Merge a contiguous bock left or right
+ */
+void FreeBlockList_mergeContiguousBlocks(void* block) {
+    // Try to merge right
+    FreeBlockList_mergeContiguousBlockRight(block);
+    // Try to merge left
+    FreeBlockList_mergeContiguousBlockLeft(block);
+
 }
 
 void FreeBlockList_print(void* head) {

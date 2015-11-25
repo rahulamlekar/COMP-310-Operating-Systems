@@ -101,29 +101,44 @@ void FreeBlockList_insert(void* newBlock) {
 }
 
 
+/**
+ * Convert a free block to an unfree block
+ */
+void FreeBlock_makeUnfree(void* block) {
+    // Remove from the free block list
+    FreeBlockList_remove(block);
+    // Construct an unfree block on top
+    printf("OldSize: %d\n", FreeBlock_getInternalSize(block));
+    size_t newSize = (size_t) FreeBlock_getInternalSize(block) + sizeDiff();
+    printf("NewSize: %d\n", newSize);
+    UnFreeBlock_construct(block, newSize);
+}
+
+void* FreeBlock_resize(void* block, size_t amountToRemove) {
+    int freeBlockNewSize = FreeBlock_getInternalSize(block) - amountToRemove;
+    // Free block is smaller, so we just resize this free block
+    FreeBlock_setInternalSize(block, freeBlockNewSize);
+    printf("Resized free block to %d bytes\n", freeBlockNewSize);
+    // The new unfree block starts at the next part
+    void* newUnfreeBlock = FreeBlock_getNextContiguousBlock(block);
+    // Construct the unfree block there
+    UnFreeBlock_construct(newUnfreeBlock, amountToRemove);
+    // Return the unfree block
+    return newUnfreeBlock;
+}
+
 void* FreeBlock_split(void* block, int newBlockSize) {
-    int oldFreeBlockSize = FreeBlock_getSize(block);
+    int oldFreeBlockSize = FreeBlock_getInternalSize(block);
     printf("Old free Block size: %d\n", oldFreeBlockSize);
     if (oldFreeBlockSize == newBlockSize) {
         printf("Equal case\n");
-        // They're the same size, so we destroy the free block
-        FreeBlockList_remove(block);
-        // Convert the free block into an unfree block
-        UnFreeBlock_construct(block, newBlockSize);
-        // Return the public pointer to this new block
+        // Make the free block unfree
+        FreeBlock_makeUnfree(block);
         return block;
     } else {
         printf("not equal case\n");
-        int freeBlockNewSize = oldFreeBlockSize - newBlockSize;
-        // Free block is smaller, so we just resize this free block
-        FreeBlock_setSize(block, freeBlockNewSize);
-        printf("Resized free block to %d bytes\n", freeBlockNewSize);
-        // The new unfree block starts at the next part
-        void* newUnfreeBlock = FreeBlock_getNextContiguousBlock(block);
-        // Construct the unfree block there
-        UnFreeBlock_construct(newUnfreeBlock, newBlockSize);
-        // Return the unfree block
-        return newUnfreeBlock;
+        // Resize the existing block
+        return FreeBlock_resize(block, (size_t) newBlockSize);
     }
 }
 
@@ -137,23 +152,24 @@ void *my_malloc(int size) {
 
     printf("malloc(%d)\n", size);
     if (heapOrigin == NULL) {
+        int freeBlockSize = size + 64;
         // Get the heap origin
         heapOrigin = sbrk(0);
         // Add size + 64 bytes to the heap
-        my_brk = sbrk(size + 64);
-        heapSize += size + 64;
+        my_brk = sbrk(totalSizeOfFreeBlock(freeBlockSize));
 
         // Test: Create a free block in the mem
-        FreeBlock_construct(my_brk, size + 64, NULL, NULL);
+        FreeBlock_construct(my_brk, freeBlockSize, NULL, NULL);
 
         FreeBlockList_insert(my_brk);
     }
 
     // Find out if there's an appropriately sized free block
-    if (FreeBlockList_getLargestBlockSize(heapOrigin) < size) {
+    if (FreeBlockList_getLargestBlockSize(heapOrigin) < (size + sizeDiff())) {
+        int freeBlockSize = size + 64;
         // We have to allocate even more space to the
-        my_brk = sbrk(size + 64);
-        FreeBlock_construct(my_brk, size + 64, NULL, NULL);
+        my_brk = sbrk(totalSizeOfFreeBlock(freeBlockSize));
+        FreeBlock_construct(my_brk, freeBlockSize, NULL, NULL);
 
         // Add this to the end of the linked list
         FreeBlockList_insert(my_brk);
@@ -192,9 +208,9 @@ void my_free(void *ptr) {
     // Get the private pointer of the unfree block
     void* unFreeBlock = UnFreeBlock_publicPointerToPrivatePointer(ptr);
     // Get the size of the unfreeblock
-    int unFreeBlockSize = UnFreeBlock_getSize(unFreeBlock);
+    int unFreeBlockSize = UnFreeBlock_getInternalSize(unFreeBlock);
     // Convert the unfree block into ao free block
-    FreeBlock_construct(unFreeBlock, unFreeBlockSize, NULL, NULL);
+    FreeBlock_construct(unFreeBlock, unFreeBlockSize - sizeDiff(), NULL, NULL);
     // Insert the free block into the linked list
     FreeBlockList_insert(unFreeBlock);
     FreeBlockList_print(firstFreeBlock);

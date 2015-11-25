@@ -10,8 +10,8 @@
 // The public pointer skips the size int
 const size_t PUBLIC_POINTER_OFFSET = sizeof(int);
 
-size_t totalSizeOfUnfreeBlock(size_t innerSize) {
-    return PUBLIC_POINTER_OFFSET + innerSize;
+size_t externalSizeOfUnfreeBlock(size_t internalSize) {
+    return PUBLIC_POINTER_OFFSET + internalSize;
 }
 
 /**
@@ -25,12 +25,16 @@ void* UnFreeBlock_publicPointerToPrivatePointer(void* publicPointer) {
     return publicPointer - PUBLIC_POINTER_OFFSET;
 }
 
-void UnFreeBlock_setSize(void* block, int size) {
+void UnFreeBlock_setInternalSize(void *block, int size) {
     *((int*) block) = size;
 }
 
-int UnFreeBlock_getSize(void* block) {
+size_t UnFreeBlock_getInternalSize(void *block) {
     return *((int*) block);
+}
+
+size_t UnfreeBlock_getExternalSize(void* block) {
+    return totalSizeOfUnfreeBlock(UnFreeBlock_getInternalSize(block));
 }
 
 /**

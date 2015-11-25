@@ -18,13 +18,21 @@ size_t totalSizeOfFreeBlock(size_t innerSize) {
     return EMPTY_DATA_OFFSET + innerSize;
 }
 
-void FreeBlock_setSize(void* freeBlock, int size) {
+void FreeBlock_setInternalSize(void *freeBlock, int size) {
     *((int*) freeBlock) = size;
 }
 
-int FreeBlock_getSize(void* freeBlock) {
+size_t FreeBlock_getInternalSize(void *freeBlock) {
     return *((int*) freeBlock);
 }
+
+/**
+ * Get the external size of a free block.
+ */
+size_t FreeBlock_getExternalSize(void* freeBlock) {
+    return totalSizeOfFreeBlock(FreeBlock_getInternalSize(freeBlock));
+}
+
 
 void FreeBlock_setNext(void* freeBlock, void* value) {
     // It's the third int in the block

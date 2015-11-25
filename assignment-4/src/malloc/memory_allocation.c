@@ -133,6 +133,8 @@ void* FreeBlock_split(void* block, int newBlockSize) {
  */
 
 void *my_malloc(int size) {
+    printf("sizeDiff: %d\n", sizeDiff());
+
     printf("malloc(%d)\n", size);
     if (heapOrigin == NULL) {
         // Get the heap origin
@@ -191,11 +193,13 @@ void my_free(void *ptr) {
     void* unFreeBlock = UnFreeBlock_publicPointerToPrivatePointer(ptr);
     // Get the size of the unfreeblock
     int unFreeBlockSize = UnFreeBlock_getSize(unFreeBlock);
-    // Convert the unfree block into a free block
+    // Convert the unfree block into ao free block
     FreeBlock_construct(unFreeBlock, unFreeBlockSize, NULL, NULL);
     // Insert the free block into the linked list
     FreeBlockList_insert(unFreeBlock);
-    // TODO: Merge with contiguous free blocks
+    FreeBlockList_print(firstFreeBlock);
+    // Merge with contiguous free blocks
+    FreeBlockList_mergeContiguousBlocks(unFreeBlock);
 }
 
 

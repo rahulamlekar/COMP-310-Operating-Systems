@@ -29,10 +29,6 @@ int FreeBlockList_getLargestBlockSize(void* head) {
     return largest;
 }
 
-void FreeBlockList_append(int size) {
-
-}
-
 
 /**
  * Get the first available free block that is at least as big as the size param.
@@ -89,6 +85,33 @@ void* FreeBlockList_getFreeBlockOfAddress(void* head, void* address) {
 
     // Address is in an unfree block!
     return NULL;
+}
+
+void FreeBlockList_mergeContiguousBlocks(void* block) {
+    void* left = FreeBlock_getPrev(block);
+    void* right = FreeBlock_getNext(block);
+
+    if (left != NULL && FreeBlock_getNextContiguousBlock(left) == block) {
+        printf("Merging FreeBlock left!");
+
+        // Set the next pointer of the
+        FreeBlock_setNext(left, FreeBlock_getNext(block));
+
+        // Set the size of the newly merged block
+        FreeBlock_setSize(left, FreeBlock_getSize(left) + totalSizeOfFreeBlock((size_t) FreeBlock_getSize(block)));
+
+        block = left;
+    }
+
+    if (right != NULL && FreeBlock_getNextContiguousBlock(block) == right) {
+        printf("Merging FreeBlock !");
+
+        // Set the next pointer of the
+        FreeBlock_setNext(block, FreeBlock_getNext(right));
+
+        // Set the size of the newly merged block
+        FreeBlock_setSize(block, FreeBlock_getSize(block) + totalSizeOfFreeBlock((size_t) FreeBlock_getSize(right)));
+    }
 }
 
 void FreeBlockList_print(void* head) {

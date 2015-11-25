@@ -6,17 +6,23 @@
 #define ASSIGNMENT_4_UNFREE_BLOCK_H
 
 #include <stddef.h>
-#include "tag.h"
 
 // The public pointer skips the size int
-const size_t PUBLIC_POINTER_OFFSET = sizeof(char) + sizeof(int);
+const size_t PUBLIC_POINTER_OFFSET = sizeof(int);
+
+size_t totalSizeOfUnfreeBlock(size_t innerSize) {
+    return PUBLIC_POINTER_OFFSET + innerSize;
+}
+
+/**
+ * The size difference between a free block and an unfree block
+ */
+size_t sizeDiff() {
+    return totalSizeOfFreeBlock(0) - totalSizeOfUnfreeBlock(0);
+}
 
 void* UnFreeBlock_publicPointerToPrivatePointer(void* publicPointer) {
     return publicPointer - PUBLIC_POINTER_OFFSET;
-}
-
-size_t totalSizeOfUnfreeBlock(size_t innerSize) {
-    return PUBLIC_POINTER_OFFSET + innerSize + TAG_SIZE;
 }
 
 void UnFreeBlock_setSize(void* block, int size) {
@@ -35,7 +41,6 @@ void* UnFreeBlock_getPublicPointer(void* block) {
 }
 
 void UnFreeBlock_construct(void* block, int size) {
-    ((char*) block) = TAG_IS_NOT_FREE;
     UnFreeBlock_setSize(block, size);
 }
 

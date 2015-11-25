@@ -14,7 +14,7 @@ const size_t NEXT_POINTER_OFFSET = sizeof(int) + sizeof(void*);
 const size_t EMPTY_DATA_OFFSET = sizeof(int) + 2 * sizeof(void*);
 
 
-size_t totalSizeOfFreeBlock(size_t innerSize) {
+size_t externalSizeOfFreeBlock(size_t innerSize) {
     return EMPTY_DATA_OFFSET + innerSize;
 }
 
@@ -30,7 +30,7 @@ size_t FreeBlock_getInternalSize(void *freeBlock) {
  * Get the external size of a free block.
  */
 size_t FreeBlock_getExternalSize(void* freeBlock) {
-    return totalSizeOfFreeBlock(FreeBlock_getInternalSize(freeBlock));
+    return externalSizeOfFreeBlock(FreeBlock_getInternalSize(freeBlock));
 }
 
 
@@ -59,17 +59,10 @@ void* FreeBlock_getPrev(void* freeBlock) {
 }
 
 /**
- * Get the total size of a free block including the metadata
- */
-size_t FreeBlock_getTotalSizeWithMetaData(void* freeBlock) {
-    return totalSizeOfFreeBlock((size_t) FreeBlock_getSize(freeBlock));
-}
-
-/**
  * Get the next contiguous block of memory
  */
 void* FreeBlock_getNextContiguousBlock(void* block) {
-    return block + FreeBlock_getTotalSizeWithMetaData(block);
+    return block + FreeBlock_getExternalSize(block);
 }
 
 /**
@@ -77,10 +70,19 @@ void* FreeBlock_getNextContiguousBlock(void* block) {
  */
 void FreeBlock_construct(void* pointer, int size, void* prev, void* next) {
     // Set the size
-    FreeBlock_setSize(pointer, size);
+    FreeBlock_setInternalSize(pointer, size);
     // Set the previous and next values
     FreeBlock_setPrev(pointer, prev);
     FreeBlock_setNext(pointer, next);
+}
+
+void FreeBlock_print(void* pointer) {
+    printf("FreeBlock {\n");
+    printf("    internal size: %d\n", FreeBlock_getInternalSize(pointer));
+    printf("    external size: %d\n", FreeBlock_getExternalSize(pointer));
+    printf("    prev: %p\n", FreeBlock_getPrev(pointer));
+    printf("    next: %p\n", FreeBlock_getNext(pointer));
+    printf("}\n");
 }
 
 

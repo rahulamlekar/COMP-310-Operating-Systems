@@ -15,7 +15,7 @@ int FreeBlockList_getLargestBlockSize(void* head) {
 
     void* next = head;
     while (next != NULL) {
-        currentSize = FreeBlock_getSize(next);
+        currentSize = FreeBlock_getInternalSize(next);
 
         // Update the size if necessary
         if (currentSize > largest) {
@@ -33,11 +33,11 @@ int FreeBlockList_getLargestBlockSize(void* head) {
 /**
  * Get the first available free block that is at least as big as the size param.
  */
-void* FreeBlockList_getFirstAvailable(void* head, int size) {
+void* FreeBlockList_getFirstAvailable(void* head, int externalSize) {
     void* next = head;
     while (next != NULL) {
         // Basically, we loop through the free block linkedlist until we find something big enough
-        if (FreeBlock_getSize(next) >= size) {
+        if (FreeBlock_getExternalSize(next) >= externalSize) {
             return next;
         }
         // It's not big enough, so keep searching
@@ -51,15 +51,15 @@ void* FreeBlockList_getFirstAvailable(void* head, int size) {
 /**
  * Get the smallesst available block that is at least as big as size
  */
-void* FreeBlockList_getSmallestAvailable(void* head, int size) {
+void* FreeBlockList_getSmallestAvailable(void* head, int externalSize) {
     void* smallestBlock = NULL;
     int smallestSize = INT_MAX;
 
     int currentSize = 0;
     void* next = head;
     while (next != NULL) {
-        currentSize = FreeBlock_getSize(next);
-        if (currentSize >= size && currentSize < smallestSize) {
+        currentSize = FreeBlock_getExternalSize(next);
+        if (currentSize >= externalSize && currentSize < smallestSize) {
             smallestSize = currentSize;
             smallestBlock = next;
         }
@@ -71,22 +71,6 @@ void* FreeBlockList_getSmallestAvailable(void* head, int size) {
     return smallestBlock;
 }
 
-void* FreeBlockList_getFreeBlockOfAddress(void* head, void* address) {
-    void* next = head;
-    while(next != NULL) {
-        // If the address falls within the limits of this block, return it
-        if (address >= next && address < FreeBlock_getNextContiguousBlock(next)) {
-            return next;
-        }
-
-        // Continue looping
-        next = FreeBlock_getNext(next);
-    }
-
-    // Address is in an unfree block!
-    return NULL;
-}
-
 void FreeBlockList_mergeContiguousBlockLeft(void* block) {
     void* left = FreeBlock_getPrev(block);
     if (left != NULL && FreeBlock_getNextContiguousBlock(left) == block) {
@@ -94,7 +78,7 @@ void FreeBlockList_mergeContiguousBlockLeft(void* block) {
         // Set the next pointer of the
         FreeBlock_setNext(left, FreeBlock_getNext(block));
         // Set the size of the newly merged block
-        FreeBlock_setSize(left, FreeBlock_getSize(left) + totalSizeOfFreeBlock((size_t) FreeBlock_getSize(block)));
+        FreeBlock_setInternalSize(left, FreeBlock_getInternalSize(left) + externalSizeOfFreeBlock((size_t) FreeBlock_getInternalSize(block)));
     }
 }
 
@@ -105,7 +89,7 @@ void FreeBlockList_mergeContiguousBlockRight(void* block) {
         // Set the next pointer of the
         FreeBlock_setNext(block, FreeBlock_getNext(right));
         // Set the size of the newly merged block
-        FreeBlock_setSize(block, FreeBlock_getSize(block) + totalSizeOfFreeBlock((size_t) FreeBlock_getSize(right)));
+        FreeBlock_setInternalSize(block, FreeBlock_getInternalSize(block) + externalSizeOfFreeBlock((size_t) FreeBlock_getInternalSize(right)));
     }
 }
 
@@ -125,7 +109,7 @@ void FreeBlockList_print(void* head) {
     printf("Free Block List: \n");
     void* next = head;
     while (next != NULL) {
-        printf("Block %p, size: %d\n", next, FreeBlock_getSize(next));
+        printf("Block %p, size: %d\n", next, FreeBlock_getInternalSize(next));
         next = FreeBlock_getNext(next);
     }
     printf("--\n");

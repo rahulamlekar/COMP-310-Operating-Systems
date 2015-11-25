@@ -2,40 +2,80 @@
 #include <stdio.h>
 #include "malloc/memory_allocation.h"
 
+
+
 int main() {
 
-    char* string1 = "This is the first test string.\n";
-    char* string2 = "This is the second test string.\n";
+    // Initial Malloc Test
 
-    char* test1 = my_malloc(sizeof(string1));
-    strcpy(test1, string1);
+    int numStrings = 5;
+    int i;
 
-    printf("String test:  %s\n", test1);
+    char* string[numStrings];
+    string[0] = "This is the first test string.\n";
+    string[1] = "This is the second test string.\n";
+    string[2] = "This is the third string for testing and is also a little bit longer.\n";
+    string[3] = "String 4 is short.\n";
+    string[4] = "Fifth string's the charm!\n";
 
-    void* test2 = my_malloc(21);
+    char* test[numStrings];
+    for (i = 0; i < numStrings; i++) {
+        test[i] = my_malloc(strlen(string[i]));
+        strcpy(test[i], string[i]);
+    }
 
-    int* intTest = my_malloc(sizeof(int));
-    *intTest = 1884214;
+    for (i = 0; i < numStrings; i++) {
+        printf("String test %d:  %s", i + 1, test[i]);
+    }
 
-    void* test3 = my_malloc(51);
+    printf("\n/////////////////////\nBegin Free Test:\n/////////////////////\n");
 
-    printf("intTest: %d\n", *intTest);
+    // Free Test
 
-    // Delete the contents, and see if stuff gets messed up
-    memset(test2, '\0', 21);
-    memset(test3, '\0', 51);
+    // Free the second and fourth string
+//    my_free(test[1]);
+//    my_free(test[3]);
 
-    void* test4 = my_malloc(81);
-    void* test5 = my_malloc(sizeof(string2));
 
-    //strcpy(test5, string2);
+    // Try printing the rest again
+    for (i = 0; i < numStrings; i++) {
+        if (i != 1 && i != 3) {
+            printf("String test %d:  %s", i + 1, test[i]);
+        }
+    }
 
-    // Try to free
-    my_free(test4);
-    void* test6 = my_malloc(41);
+    // Now we're going to malloc a bunch of bytes to
 
-    printf("String test:  %s\n", test1);
-    //printf("String test2: %s", test5);
+    int numSillyBytes = 256;
+    void* sillytest[numSillyBytes];
+    // Malloc a bunch of silly bytes
+    for (i = 0; i < numSillyBytes; i++) {
+        sillytest[i] = my_malloc(1);
+        // Write 0 to this data to nuke everything
+        memset(sillytest[i], '\0', 1);
+    }
+//    // Free half of them
+//    for (i = 0; i < (numSillyBytes / 2); i++) {
+//        memset(sillytest[i], '\0', 1);
+//        my_free(sillytest[i]);
+//    }
+
+    // Malloc our strings again
+//    test[1] = my_malloc(strlen(string[1]));
+//    strcpy(test[1], string[1]);
+//    test[3] = my_malloc(strlen(string[3]));
+//    strcpy(test[3], string[3]);
+
+//    // Free the other half of silly bytes
+//    for (; i < numSillyBytes; i++) {
+//        memset(sillytest[i], '\0', 1);
+//        my_free(sillytest[i]);
+//    }
+
+    // See if our strings still work!
+    for (i = 0; i < numStrings; i++) {
+        printf("String test %d:  %s", i + 1, test[i]);
+    }
 
 
     return 0;

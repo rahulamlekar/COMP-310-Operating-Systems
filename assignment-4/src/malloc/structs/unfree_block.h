@@ -18,7 +18,7 @@ size_t externalSizeOfUnfreeBlock(size_t internalSize) {
  * The size difference between a free block and an unfree block
  */
 size_t sizeDiff() {
-    return totalSizeOfFreeBlock(0) - totalSizeOfUnfreeBlock(0);
+    return externalSizeOfFreeBlock(0) - externalSizeOfUnfreeBlock(0);
 }
 
 void* UnFreeBlock_publicPointerToPrivatePointer(void* publicPointer) {
@@ -34,7 +34,7 @@ size_t UnFreeBlock_getInternalSize(void *block) {
 }
 
 size_t UnfreeBlock_getExternalSize(void* block) {
-    return totalSizeOfUnfreeBlock(UnFreeBlock_getInternalSize(block));
+    return externalSizeOfUnfreeBlock(UnFreeBlock_getInternalSize(block));
 }
 
 /**
@@ -45,7 +45,7 @@ void* UnFreeBlock_getPublicPointer(void* block) {
 }
 
 void UnFreeBlock_construct(void* block, int size) {
-    UnFreeBlock_setSize(block, size);
+    UnFreeBlock_setInternalSize(block, size);
 }
 
 #endif //ASSIGNMENT_4_UNFREE_BLOCK_H

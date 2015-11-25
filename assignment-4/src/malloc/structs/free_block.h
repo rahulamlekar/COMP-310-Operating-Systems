@@ -77,7 +77,7 @@ void FreeBlock_construct(void* pointer, int size, void* prev, void* next) {
 }
 
 void FreeBlock_print(void* pointer) {
-    printf("FreeBlock {\n");
+    printf("FreeBlock %p {\n", pointer);
     printf("    internal size: %d\n", FreeBlock_getInternalSize(pointer));
     printf("    external size: %d\n", FreeBlock_getExternalSize(pointer));
     printf("    prev: %p\n", FreeBlock_getPrev(pointer));

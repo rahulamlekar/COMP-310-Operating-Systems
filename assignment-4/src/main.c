@@ -33,8 +33,8 @@ int main() {
     // Free Test
 
     // Free the second and fourth string
-//    my_free(test[1]);
-//    my_free(test[3]);
+    my_free(test[1]);
+    my_free(test[3]);
 
 
     // Try printing the rest again
@@ -50,6 +50,7 @@ int main() {
     void* sillytest[numSillyBytes];
     // Malloc a bunch of silly bytes
     for (i = 0; i < numSillyBytes; i++) {
+        printf("i : %d\n", i);
         sillytest[i] = my_malloc(1);
         // Write 0 to this data to nuke everything
         memset(sillytest[i], '\0', 1);
@@ -72,10 +73,10 @@ int main() {
 //        my_free(sillytest[i]);
 //    }
 
-    // See if our strings still work!
-    for (i = 0; i < numStrings; i++) {
-        printf("String test %d:  %s", i + 1, test[i]);
-    }
+//    // See if our strings still work!
+//    for (i = 0; i < numStrings; i++) {
+//        printf("String test %d:  %s", i + 1, test[i]);
+//    }
 
 
     return 0;

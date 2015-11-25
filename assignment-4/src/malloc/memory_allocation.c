@@ -132,13 +132,23 @@ void* FreeBlock_resize(void* block, size_t amountToRemove) {
     printf("Test: %d, %d\n", FreeBlock_getInternalSize(block), amountToRemove);
     printf("Test2: %d, %d\n", FreeBlock_getInternalSize(block), externalSizeOfUnfreeBlock(amountToRemove));
     int freeBlockNewSize = FreeBlock_getInternalSize(block) - externalSizeOfUnfreeBlock(amountToRemove);
+
+    FreeBlock_print(block);
+
     // Free block is smaller, so we just resize this free block
     FreeBlock_setInternalSize(block, freeBlockNewSize);
     printf("Resized free block to %d bytes\n", freeBlockNewSize);
+
+    FreeBlock_print(block);
+
     // The new unfree block starts at the next part
     void* newUnfreeBlock = FreeBlock_getNextContiguousBlock(block);
+    printf("newUnfreeBlock: %p\n", newUnfreeBlock);
     // Construct the unfree block there
     UnFreeBlock_construct(newUnfreeBlock, amountToRemove);
+
+    FreeBlock_print(block);
+
     // Return the unfree block
     return newUnfreeBlock;
 }
@@ -179,6 +189,10 @@ void grow_heap_size(int size) {
 
 void *my_malloc(int size) {
     printf("malloc(%d)\n", size);
+
+    // Always add an extra byte
+    size += 1;
+
     printf("Largest free size: %d\n", FreeBlockList_getLargestBlockSize(firstFreeBlock));
     if (my_brk == NULL || FreeBlockList_getLargestBlockSize(firstFreeBlock) < size) {
         // Grow the size of the heap appropriately
@@ -201,6 +215,8 @@ void *my_malloc(int size) {
     printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
 
     printf("Internal Size of freeBlockThatWillBecomePopulated: %d\n", FreeBlock_getInternalSize(freeBlockThatWillBecomePopulated));
+
+    FreeBlockList_print(firstFreeBlock);
 
     // Allocate the relevant portion of the space
     void* newUnfreeBlock = FreeBlock_split(freeBlockThatWillBecomePopulated, size);

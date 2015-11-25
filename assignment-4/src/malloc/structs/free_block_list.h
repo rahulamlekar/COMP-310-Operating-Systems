@@ -109,7 +109,7 @@ void FreeBlockList_print(void* head) {
     printf("Free Block List: \n");
     void* next = head;
     while (next != NULL) {
-        printf("Block %p, size: %d\n", next, FreeBlock_getInternalSize(next));
+        printf("Block %p, size: %d, prev: %p, next: %p\n", next, FreeBlock_getInternalSize(next), FreeBlock_getPrev(next), FreeBlock_getNext(next));
         next = FreeBlock_getNext(next);
     }
     printf("--\n");

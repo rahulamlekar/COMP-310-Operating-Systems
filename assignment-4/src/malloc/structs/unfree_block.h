@@ -48,4 +48,12 @@ void UnFreeBlock_construct(void* block, int size) {
     UnFreeBlock_setInternalSize(block, size);
 }
 
+
+void UnFreeBlock_print(void* pointer) {
+    printf("UnFreeBlock {\n");
+    printf("    internal size: %d\n", UnFreeBlock_getInternalSize(pointer));
+    printf("    external size: %d\n", UnfreeBlock_getExternalSize(pointer));
+    printf("}\n");
+}
+
 #endif //ASSIGNMENT_4_UNFREE_BLOCK_H

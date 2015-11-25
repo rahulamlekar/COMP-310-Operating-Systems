@@ -227,7 +227,7 @@ void my_free(void *ptr) {
 
     //
     // Convert the unfree block into ao free block
-    FreeBlock_construct(unFreeBlock, unFreeBlockSize - sizeDiff(), NULL, NULL);
+    FreeBlock_construct(unFreeBlock, unFreeBlockSize + sizeDiff(), NULL, NULL);
 
     FreeBlock_print(unFreeBlock);
 

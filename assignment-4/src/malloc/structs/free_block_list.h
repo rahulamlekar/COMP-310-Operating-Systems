@@ -101,18 +101,16 @@ void FreeBlockList_mergeContiguousBlocks(void* block) {
     FreeBlockList_mergeContiguousBlockRight(block);
     // Try to merge left
     FreeBlockList_mergeContiguousBlockLeft(block);
-
 }
 
 void FreeBlockList_print(void* head) {
-    printf("--\n");
-    printf("Free Block List: \n");
+    printf("Free Block List: {\n");
     void* next = head;
     while (next != NULL) {
         printf("Block %p, size: %d, prev: %p, next: %p\n", next, FreeBlock_getInternalSize(next), FreeBlock_getPrev(next), FreeBlock_getNext(next));
         next = FreeBlock_getNext(next);
     }
-    printf("--\n");
+    printf("}\n");
 }
 
 #endif //ASSIGNMENT_4_FREE_BLOCK_LIST_H

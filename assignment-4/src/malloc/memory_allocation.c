@@ -190,8 +190,8 @@ void grow_heap_size(int size) {
 void *my_malloc(int size) {
     printf("malloc(%d)\n", size);
 
-    // Always add an extra byte
-    size += 1;
+    // Always add a little extra data to avoid fragmentation
+    size += sizeof(int) + 1;
 
     printf("Largest free size: %d\n", FreeBlockList_getLargestBlockSize(firstFreeBlock));
     if (my_brk == NULL || FreeBlockList_getLargestBlockSize(firstFreeBlock) < size) {
@@ -233,34 +233,38 @@ void *my_malloc(int size) {
 
 void my_free(void *ptr) {
     printf("my_free(%p)\n", ptr);
+    FreeBlockList_print(firstFreeBlock);
     // Get the private pointer of the unfree block
-    void* unFreeBlock = UnFreeBlock_publicPointerToPrivatePointer(ptr);
+    void*block = UnFreeBlock_publicPointerToPrivatePointer(ptr);
     printf("got unfree block\n");
-    // Get the size of the unfreeblock
-    int unFreeBlockSize = UnFreeBlock_getInternalSize(unFreeBlock);
 
-    printf("internal size: %d\n", unFreeBlockSize);
+    printf("uf block external size: %d\n", UnfreeBlock_getExternalSize(block));
+    printf("uf block internal size: %d\n", UnFreeBlock_getInternalSize(block));
 
-    //
     // Convert the unfree block into ao free block
-    FreeBlock_construct(unFreeBlock, unFreeBlockSize + sizeDiff(), NULL, NULL);
+    FreeBlock_construct(block, UnFreeBlock_getInternalSize(block) - sizeDiff(), NULL, NULL);
 
-    FreeBlock_print(unFreeBlock);
+    FreeBlock_print(block);
+
+    printf("block external size: %d\n", FreeBlock_getExternalSize(block));
+
+    printf("unfreeBlock: %d, firstBlock: %d, diff: %d\n", block, firstFreeBlock, block - firstFreeBlock);
+
 
 
     FreeBlockList_print(firstFreeBlock);
 
     printf("About to insert the unfree block");
     // Insert the free block into the linked list
-    FreeBlockList_insert(unFreeBlock);
+    FreeBlockList_insert(block);
 
     printf("Finished inserting\n");
-    FreeBlock_print(unFreeBlock);
+    FreeBlock_print(block);
 
 
     FreeBlockList_print(firstFreeBlock);
     // Merge with contiguous free blocks
-    FreeBlockList_mergeContiguousBlocks(unFreeBlock);
+    FreeBlockList_mergeContiguousBlocks(block);
     printf("end my_free()\n");
 }
 

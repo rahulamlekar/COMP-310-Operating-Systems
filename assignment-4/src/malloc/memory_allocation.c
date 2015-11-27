@@ -4,10 +4,10 @@
 
 #include <stdlib.h>
 #include <stdio.h>
+#include <limits.h>
 #include "memory_allocation.h"
 #include "utils/constants.h"
 #include "structs/free_block.h"
-#include "structs/free_block_list.h"
 #include "structs/unfree_block.h"
 
 // Allocation policies
@@ -30,24 +30,145 @@ void* lastFreeBlock = NULL;
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+int FreeBlockList_getLargestBlockSize(void* head) {
+    int largest = 0;
+    int currentSize = 0;
+
+    void* next = head;
+    while (next != NULL) {
+        currentSize = FreeBlock_getInternalSize(next);
+
+        // Update the size if necessary
+        if (currentSize > largest) {
+            largest = currentSize;
+        }
+
+        // Keep looping
+        next = FreeBlock_getNext(next);
+    }
+    // Return the largest size
+    return largest;
+}
+
+
+/**
+ * Get the first available free block that is at least as big as the size param.
+ */
+void* FreeBlockList_getFirstAvailable(void* head, int externalSize) {
+    void* next = head;
+    while (next != NULL) {
+        // Basically, we loop through the free block linkedlist until we find something big enough
+        if (FreeBlock_getExternalSize(next) >= externalSize) {
+            return next;
+        }
+        // It's not big enough, so keep searching
+        next = FreeBlock_getNext(next);
+    }
+
+    // None available!
+    return NULL;
+}
+
+/**
+ * Get the smallesst available block that is at least as big as size
+ */
+void* FreeBlockList_getSmallestAvailable(void* head, int externalSize) {
+    void* smallestBlock = NULL;
+    int smallestSize = INT_MAX;
+
+    int currentSize = 0;
+    void* next = head;
+    while (next != NULL) {
+        currentSize = FreeBlock_getExternalSize(next);
+        if (currentSize >= externalSize && currentSize < smallestSize) {
+            smallestSize = currentSize;
+            smallestBlock = next;
+        }
+        // Keep looping
+        next = FreeBlock_getNext(next);
+    }
+
+    // Will return an actual block if success, null if failure
+    return smallestBlock;
+}
+
+void FreeBlockList_mergeContiguousBlockLeft(void* block) {
+    void* left = FreeBlock_getPrev(block);
+    if (left != NULL && FreeBlock_getNextContiguousBlock(left) == block) {
+        printf("Merging FreeBlock left!");
+        // Set the next pointer of the
+        FreeBlock_setNext(left, FreeBlock_getNext(block));
+        // Set the size of the newly merged block
+        FreeBlock_setInternalSize(left, FreeBlock_getInternalSize(left) + externalSizeOfFreeBlock((size_t) FreeBlock_getInternalSize(block)));
+
+        // We need to handle the case where the last free block pointer gets eliminated
+        if (lastFreeBlock == block) {
+            printf("LastFreeBlock moving left!\n");
+            lastFreeBlock = left;
+        }
+    }
+}
+
+void FreeBlockList_mergeContiguousBlockRight(void* block) {
+    void* right = FreeBlock_getNext(block);
+    if (right != NULL && FreeBlock_getNextContiguousBlock(block) == right) {
+        printf("Merging FreeBlock right!\n");
+        // Set the next pointer of the
+        FreeBlock_setNext(block, FreeBlock_getNext(right));
+        // Set the size of the newly merged block
+        FreeBlock_setInternalSize(block, FreeBlock_getInternalSize(block) + externalSizeOfFreeBlock((size_t) FreeBlock_getInternalSize(right)));
+
+        // We need to handle the case where the last free block pointer gets eliminated
+        if (lastFreeBlock == right) {
+            printf("LastFreeBlock moving left from right!\n");
+            lastFreeBlock = block;
+        }
+    }
+}
+
+/**
+ * Merge a contiguous bock left or right
+ */
+void FreeBlockList_mergeContiguousBlocks(void* block) {
+    // Try to merge right
+    FreeBlockList_mergeContiguousBlockRight(block);
+    // Try to merge left
+    FreeBlockList_mergeContiguousBlockLeft(block);
+}
+
+void FreeBlockList_print(void* head) {
+    printf("Free Block List: {\n");
+    void* next = head;
+    while (next != NULL) {
+        printf("Block %p, size: %d, prev: %p, next: %p\n", next, FreeBlock_getInternalSize(next), FreeBlock_getPrev(next), FreeBlock_getNext(next));
+        next = FreeBlock_getNext(next);
+    }
+    printf("}\n");
+}
+
 
 /**
  * Remove a free block from the linked list
  */
 void FreeBlockList_remove(void* block) {
+    printf("firstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
     if (firstFreeBlock == lastFreeBlock) {
+        printf("Removing only free block\n");
         // There is only 1 block
         firstFreeBlock = NULL;
         lastFreeBlock = NULL;
     } else if (block == firstFreeBlock) {
+        printf("Removing first free block\n");
         // The block is the first block
         firstFreeBlock = FreeBlock_getNext(block);
         FreeBlock_setPrev(firstFreeBlock, NULL);
     } else if (block == lastFreeBlock) {
+        printf("Removing last free block\n");
         // The block is the last block
         lastFreeBlock = FreeBlock_getPrev(lastFreeBlock);
         FreeBlock_setNext(lastFreeBlock, NULL);
     } else {
+        printf("Removing somewhere in list\n");
         // Remove somewhere from the list
         void* prev = FreeBlock_getPrev(block);
         void* next = FreeBlock_getNext(block);
@@ -70,11 +191,48 @@ void FreeBlockList_insertBeginning(void* newBlock) {
 }
 
 void FreeBlockList_insertEnd(void* newBlock) {
+    printf("Inserting free block at end of list\n");
     // This is the new last block
     FreeBlock_setPrev(newBlock, lastFreeBlock);
     FreeBlock_setNext(newBlock, NULL);
     FreeBlock_setNext(lastFreeBlock, newBlock);
     lastFreeBlock = newBlock;
+}
+
+
+/**
+ * The linked list is currently empty.  After the insertion, it will only have one member.
+ */
+void FreeBlockList_insertOnly(void* newBlock) {
+    firstFreeBlock = newBlock;
+    lastFreeBlock = newBlock;
+    FreeBlock_setNext(newBlock, NULL);
+    FreeBlock_setPrev(newBlock, NULL);
+}
+
+
+/**
+ * Insert a new block into the linked list at the appropriate location
+ */
+void FreeBlockList_insertSomeWhereInList(void* newBlock) {
+    printf("Inserting the freeblock somewhere in the list\n");
+    void* current = firstFreeBlock;
+    void* next;
+    printf("Current: %p\n", current);
+    while (current != NULL) {
+        next = FreeBlock_getNext(current);
+        if (current < newBlock && next > newBlock) {
+            // The new block goes between current and next
+            FreeBlock_setPrev(newBlock, current);
+            FreeBlock_setNext(newBlock, next);
+            // Set the surrounding blocks
+            FreeBlock_setNext(current, newBlock);
+            FreeBlock_setPrev(next, newBlock);
+            return;
+        }
+        // Continue iterating
+        current = FreeBlock_getNext(current);
+    }
 }
 
 /**
@@ -83,10 +241,7 @@ void FreeBlockList_insertEnd(void* newBlock) {
 void FreeBlockList_insert(void* newBlock) {
     if (firstFreeBlock == NULL && lastFreeBlock == NULL) {
         // This will be the only free block
-        firstFreeBlock = newBlock;
-        lastFreeBlock = newBlock;
-        FreeBlock_setNext(newBlock, NULL);
-        FreeBlock_setPrev(newBlock, NULL);
+        FreeBlockList_insertOnly(newBlock);
     } else if (newBlock < firstFreeBlock) {
         // New first block
         FreeBlockList_insertBeginning(newBlock);
@@ -94,23 +249,9 @@ void FreeBlockList_insert(void* newBlock) {
         // New last block
         FreeBlockList_insertEnd(newBlock);
     } else {
+        printf("Insert somewhere in list\n");
         // Insert somewhere in the list
-        void* current = firstFreeBlock;
-        void* next;
-        while (current != NULL) {
-            next = FreeBlock_getNext(current);
-            if (current < newBlock && next > newBlock) {
-                // The new block goes between current and next
-                FreeBlock_setPrev(newBlock, current);
-                FreeBlock_setNext(newBlock, next);
-                // Set the surrounding blocks
-                FreeBlock_setNext(current, newBlock);
-                FreeBlock_setPrev(next, newBlock);
-                return;
-            }
-            // Continue iterating
-            current = FreeBlock_getNext(current);
-        }
+        FreeBlockList_insertSomeWhereInList(newBlock);
     }
 }
 
@@ -119,8 +260,11 @@ void FreeBlockList_insert(void* newBlock) {
  * Convert a free block to an unfree block
  */
 void FreeBlock_makeUnfree(void* block) {
+    printf("FreeBlock_makeUnfree(%p)\n", block);
+    FreeBlockList_print(firstFreeBlock);
     // Remove from the free block list
     FreeBlockList_remove(block);
+    printf("Removed block\n");
     // Construct an unfree block on top
     printf("OldSize: %d\n", FreeBlock_getInternalSize(block));
     size_t newSize = (size_t) FreeBlock_getInternalSize(block) + sizeDiff();
@@ -154,12 +298,12 @@ void* FreeBlock_resize(void* block, size_t amountToRemove) {
 }
 
 void* FreeBlock_split(void* block, int newBlockSize) {
-    int oldFreeBlockSize = FreeBlock_getInternalSize(block);
-    printf("Old free Block internal size: %d, newBlockSize: %d\n", oldFreeBlockSize, newBlockSize);
-    if (oldFreeBlockSize <= externalSizeOfUnfreeBlock(newBlockSize)) {
-        printf("Equal case\n");
+    printf("Old free Block internal size: %d, newBlockSize: %d\n", FreeBlock_getInternalSize(block), newBlockSize);
+    if (FreeBlock_getInternalSize(block) <= externalSizeOfUnfreeBlock(newBlockSize)) {
+        printf("is equal case\n");
         // Make the free block unfree
         FreeBlock_makeUnfree(block);
+        printf("made block unfree\n");
         return block;
     } else {
         printf("not equal case\n");
@@ -169,6 +313,7 @@ void* FreeBlock_split(void* block, int newBlockSize) {
 }
 
 void grow_heap_size(int size) {
+    printf("Growing the heap!\n");
     // Grow it by the size*2 plus 64 so that if it's a small number then you get 64 extra, and if it's a large number
     // then the double is significant.
     int freeBlockSize = size * 2 + 64;
@@ -188,7 +333,7 @@ void grow_heap_size(int size) {
 
 
 void *my_malloc(int size) {
-    printf("malloc(%d)\n", size);
+    printf("my_malloc(%d)\n", size);
 
     // Always add a little extra data to avoid fragmentation
     size += sizeof(int) + 1;
@@ -201,13 +346,16 @@ void *my_malloc(int size) {
 
     FreeBlockList_print(firstFreeBlock);
 
-    printf("Test: %d\n", FreeBlockList_getLargestBlockSize(my_brk));
+    printf("testlol\n");
+
 
     void* freeBlockThatWillBecomePopulated;
     if (allocationPolicy == BEST_FIT_POLICY) {
+        printf("Executing best fit policy\n");
         // Allocate best first
         freeBlockThatWillBecomePopulated = FreeBlockList_getSmallestAvailable(firstFreeBlock, externalSizeOfUnfreeBlock(size));
     } else {
+        printf("Executing first fit policy\n");
         // Allocate first available
         freeBlockThatWillBecomePopulated = FreeBlockList_getFirstAvailable(firstFreeBlock, externalSizeOfUnfreeBlock(size));
     }
@@ -223,6 +371,8 @@ void *my_malloc(int size) {
 
     printf("Split successful!\n");
 
+    printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
+
     FreeBlockList_print(firstFreeBlock);
 
     printf("my_malloc() about to return\n");
@@ -233,6 +383,7 @@ void *my_malloc(int size) {
 
 void my_free(void *ptr) {
     printf("my_free(%p)\n", ptr);
+    printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
     FreeBlockList_print(firstFreeBlock);
     // Get the private pointer of the unfree block
     void*block = UnFreeBlock_publicPointerToPrivatePointer(ptr);
@@ -250,10 +401,6 @@ void my_free(void *ptr) {
 
     printf("unfreeBlock: %d, firstBlock: %d, diff: %d\n", block, firstFreeBlock, block - firstFreeBlock);
 
-
-
-    FreeBlockList_print(firstFreeBlock);
-
     printf("About to insert the unfree block");
     // Insert the free block into the linked list
     FreeBlockList_insert(block);
@@ -261,11 +408,17 @@ void my_free(void *ptr) {
     printf("Finished inserting\n");
     FreeBlock_print(block);
 
-
+    printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
     FreeBlockList_print(firstFreeBlock);
+
+    printf("Merging the continuous blocks\n");
     // Merge with contiguous free blocks
     FreeBlockList_mergeContiguousBlocks(block);
-    printf("end my_free()\n");
+
+    printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
+    FreeBlockList_print(firstFreeBlock);
+
+    printf("end my_free()\n\n\n");
 }
 
 

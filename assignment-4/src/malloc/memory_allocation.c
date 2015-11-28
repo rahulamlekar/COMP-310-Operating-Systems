@@ -336,7 +336,7 @@ void *my_malloc(int size) {
     printf("my_malloc(%d)\n", size);
 
     // Always add a little extra data to avoid fragmentation
-    size += sizeof(int) + 1;
+    size += 2 * sizeof(void*) + 1;
 
     printf("Largest free size: %d\n", FreeBlockList_getLargestBlockSize(firstFreeBlock));
     if (my_brk == NULL || FreeBlockList_getLargestBlockSize(firstFreeBlock) < size) {
@@ -382,15 +382,21 @@ void *my_malloc(int size) {
 }
 
 void my_free(void *ptr) {
-    printf("my_free(%p)\n", ptr);
+    printf("\n\nmy_free(%p)\n", ptr);
     printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
     FreeBlockList_print(firstFreeBlock);
     // Get the private pointer of the unfree block
     void*block = UnFreeBlock_publicPointerToPrivatePointer(ptr);
     printf("got unfree block\n");
 
-    printf("uf block external size: %d\n", UnfreeBlock_getExternalSize(block));
-    printf("uf block internal size: %d\n", UnFreeBlock_getInternalSize(block));
+    printf("unfree block external size: %d\n", UnfreeBlock_getExternalSize(block));
+    printf("unfree block internal size: %d\n", UnFreeBlock_getInternalSize(block));
+
+    if (UnFreeBlock_getInternalSize(block) - sizeDiff() < 1) {
+        // We can't have a negative block, so we have to merge it!
+
+        // TODO
+    }
 
     // Convert the unfree block into ao free block
     FreeBlock_construct(block, UnFreeBlock_getInternalSize(block) - sizeDiff(), NULL, NULL);
@@ -401,7 +407,7 @@ void my_free(void *ptr) {
 
     printf("unfreeBlock: %d, firstBlock: %d, diff: %d\n", block, firstFreeBlock, block - firstFreeBlock);
 
-    printf("About to insert the unfree block");
+    printf("About to insert the unfree block\n");
     // Insert the free block into the linked list
     FreeBlockList_insert(block);
 

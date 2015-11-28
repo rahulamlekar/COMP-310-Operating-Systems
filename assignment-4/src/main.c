@@ -2,6 +2,41 @@
 #include <stdio.h>
 #include "malloc/memory_allocation.h"
 
+int failedTests = 0;
+int totalTests = 0;
+
+/////////////////////////////////////////////////////////////
+// Functions for simple testing
+/////////////////////////////////////////////////////////////
+
+int ASSERT_TRUE(int boolean, char *testName) {
+    totalTests++;
+    if (boolean) {
+        printf("%s: PASSED\n", testName);
+        return 0;
+    } else {
+        printf("%s: FAILED\n", testName);
+        failedTests++;
+        return 1;
+    }
+}
+
+int ASSERT_EQUAL_STRING(char *nameA, char *nameB, char *testName) {
+    return ASSERT_TRUE(strcmp(nameA, nameB) == 0, testName);
+}
+
+int ASSERT_EQUAL_INT(int a, int b, char *testName) {
+    return ASSERT_TRUE(a == b, testName);
+}
+
+int ASSERT_EQUAL_PTR(void *a, void *b, char *testName) {
+    return ASSERT_TRUE(a == b, testName);
+}
+
+
+/////////////////////////////////////////////////////////////
+// Tests
+/////////////////////////////////////////////////////////////
 
 int main() {
 
@@ -77,7 +112,6 @@ int main() {
     my_free(test[1]);
     my_free(test[3]);
 
-
     // Try printing the rest again
     for (i = 0; i < numStrings; i++) {
         if (i != 1 && i != 3) {
@@ -85,9 +119,16 @@ int main() {
         }
     }
 
+    printf("\n/////////////////////\nBegin Silly Byte Test:\n/////////////////////\n");
+
     // Now we're going to malloc a bunch of bytes to
 
-    int numSillyBytes = 256;
+
+
+    int numSillyBytes = 182383;
+
+    printf("Writing %d \"silly\" bytes to memory.  This may take a while...\n\n");
+
     void* sillytest[numSillyBytes];
     // Malloc a bunch of silly bytes
     for (i = 0; i < numSillyBytes; i++) {
@@ -96,28 +137,37 @@ int main() {
         // Write 0 to this data to nuke everything
         memset(sillytest[i], '\0', 1);
     }
-//    // Free half of them
-//    for (i = 0; i < (numSillyBytes / 2); i++) {
-//        memset(sillytest[i], '\0', 1);
-//        my_free(sillytest[i]);
-//    }
+
+    printf("Freeing half of the silly bytes.  This may take a while...\n\n");
+
+    // Free half of them
+    for (i = 0; i < (numSillyBytes / 2); i++) {
+        memset(sillytest[i], '\0', 1);
+        my_free(sillytest[i]);
+    }
+
+    printf("Writing two of our strings to memory again...\n\n");
 
     // Malloc our strings again
-//    test[1] = my_malloc(strlen(string[1]));
-//    strcpy(test[1], string[1]);
-//    test[3] = my_malloc(strlen(string[3]));
-//    strcpy(test[3], string[3]);
+    test[1] = my_malloc(strlen(string[1]));
+    strcpy(test[1], string[1]);
+    test[3] = my_malloc(strlen(string[3]));
+    strcpy(test[3], string[3]);
 
-//    // Free the other half of silly bytes
-//    for (; i < numSillyBytes; i++) {
-//        memset(sillytest[i], '\0', 1);
-//        my_free(sillytest[i]);
-//    }
+    printf("Freeing the other half of the silly bytes.  This may take a while...\n\n");
 
-//    // See if our strings still work!
-//    for (i = 0; i < numStrings; i++) {
-//        printf("String test %d:  %s", i + 1, test[i]);
-//    }
+    // Free the other half of silly bytes
+    for (; i < numSillyBytes; i++) {
+        memset(sillytest[i], '\0', 1);
+        my_free(sillytest[i]);
+    }
+
+    printf("Testing that the strings were not corrupted by the silly byte mallocs and frees.\n\n");
+
+    // See if our strings still work!
+    for (i = 0; i < numStrings; i++) {
+        printf("String test %d: %s", i + 1, test[i]);
+    }
 
 
     return 0;

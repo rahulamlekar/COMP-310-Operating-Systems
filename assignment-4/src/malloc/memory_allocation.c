@@ -17,12 +17,16 @@
 int allocationPolicy = 0;
 
 // The address at the end of the heap
+void* heap_end = NULL;
 void* my_brk = NULL;
-int heapSize = 0;
 
 // Keep track of the first and last free blocks
 void* firstFreeBlock = NULL;
 void* lastFreeBlock = NULL;
+
+// Interface-defined string
+char* my_malloc_error = NULL;
+
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 //
@@ -48,6 +52,19 @@ int FreeBlockList_getLargestBlockSize(void* head) {
     }
     // Return the largest size
     return largest;
+}
+
+int FreeBlockList_totalInternalBlockSize(void* head) {
+    int output = 0;
+
+    void* next = head;
+    while (next != NULL) {
+        output += FreeBlock_getInternalSize(next);
+        // Keep looping
+        next = FreeBlock_getNext(next);
+    }
+    // Return the total size
+    return output;
 }
 
 
@@ -95,7 +112,6 @@ void* FreeBlockList_getSmallestAvailable(void* head, int externalSize) {
 void FreeBlockList_mergeContiguousBlockLeft(void* block) {
     void* left = FreeBlock_getPrev(block);
     if (left != NULL && FreeBlock_getNextContiguousBlock(left) == block) {
-        printf("Merging FreeBlock left!");
         // Set the next pointer of the
         FreeBlock_setNext(left, FreeBlock_getNext(block));
         // Set the size of the newly merged block
@@ -103,7 +119,6 @@ void FreeBlockList_mergeContiguousBlockLeft(void* block) {
 
         // We need to handle the case where the last free block pointer gets eliminated
         if (lastFreeBlock == block) {
-            printf("LastFreeBlock moving left!\n");
             lastFreeBlock = left;
         }
     }
@@ -112,7 +127,6 @@ void FreeBlockList_mergeContiguousBlockLeft(void* block) {
 void FreeBlockList_mergeContiguousBlockRight(void* block) {
     void* right = FreeBlock_getNext(block);
     if (right != NULL && FreeBlock_getNextContiguousBlock(block) == right) {
-        printf("Merging FreeBlock right!\n");
         // Set the next pointer of the
         FreeBlock_setNext(block, FreeBlock_getNext(right));
         // Set the size of the newly merged block
@@ -120,7 +134,6 @@ void FreeBlockList_mergeContiguousBlockRight(void* block) {
 
         // We need to handle the case where the last free block pointer gets eliminated
         if (lastFreeBlock == right) {
-            printf("LastFreeBlock moving left from right!\n");
             lastFreeBlock = block;
         }
     }
@@ -136,39 +149,24 @@ void FreeBlockList_mergeContiguousBlocks(void* block) {
     FreeBlockList_mergeContiguousBlockLeft(block);
 }
 
-void FreeBlockList_print(void* head) {
-    printf("Free Block List: {\n");
-    void* next = head;
-    while (next != NULL) {
-        printf("Block %p, size: %d, prev: %p, next: %p\n", next, FreeBlock_getInternalSize(next), FreeBlock_getPrev(next), FreeBlock_getNext(next));
-        next = FreeBlock_getNext(next);
-    }
-    printf("}\n");
-}
-
 
 /**
  * Remove a free block from the linked list
  */
 void FreeBlockList_remove(void* block) {
-    printf("firstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
     if (firstFreeBlock == lastFreeBlock) {
-        printf("Removing only free block\n");
         // There is only 1 block
         firstFreeBlock = NULL;
         lastFreeBlock = NULL;
     } else if (block == firstFreeBlock) {
-        printf("Removing first free block\n");
         // The block is the first block
         firstFreeBlock = FreeBlock_getNext(block);
         FreeBlock_setPrev(firstFreeBlock, NULL);
     } else if (block == lastFreeBlock) {
-        printf("Removing last free block\n");
         // The block is the last block
         lastFreeBlock = FreeBlock_getPrev(lastFreeBlock);
         FreeBlock_setNext(lastFreeBlock, NULL);
     } else {
-        printf("Removing somewhere in list\n");
         // Remove somewhere from the list
         void* prev = FreeBlock_getPrev(block);
         void* next = FreeBlock_getNext(block);
@@ -191,7 +189,6 @@ void FreeBlockList_insertBeginning(void* newBlock) {
 }
 
 void FreeBlockList_insertEnd(void* newBlock) {
-    printf("Inserting free block at end of list\n");
     // This is the new last block
     FreeBlock_setPrev(newBlock, lastFreeBlock);
     FreeBlock_setNext(newBlock, NULL);
@@ -215,10 +212,8 @@ void FreeBlockList_insertOnly(void* newBlock) {
  * Insert a new block into the linked list at the appropriate location
  */
 void FreeBlockList_insertSomeWhereInList(void* newBlock) {
-    printf("Inserting the freeblock somewhere in the list\n");
     void* current = firstFreeBlock;
     void* next;
-    printf("Current: %p\n", current);
     while (current != NULL) {
         next = FreeBlock_getNext(current);
         if (current < newBlock && next > newBlock) {
@@ -249,7 +244,6 @@ void FreeBlockList_insert(void* newBlock) {
         // New last block
         FreeBlockList_insertEnd(newBlock);
     } else {
-        printf("Insert somewhere in list\n");
         // Insert somewhere in the list
         FreeBlockList_insertSomeWhereInList(newBlock);
     }
@@ -260,68 +254,63 @@ void FreeBlockList_insert(void* newBlock) {
  * Convert a free block to an unfree block
  */
 void FreeBlock_makeUnfree(void* block) {
-    printf("FreeBlock_makeUnfree(%p)\n", block);
-    FreeBlockList_print(firstFreeBlock);
     // Remove from the free block list
     FreeBlockList_remove(block);
-    printf("Removed block\n");
     // Construct an unfree block on top
-    printf("OldSize: %d\n", FreeBlock_getInternalSize(block));
     size_t newSize = (size_t) FreeBlock_getInternalSize(block) + sizeDiff();
-    printf("NewSize: %d\n", newSize);
     UnFreeBlock_construct(block, newSize);
 }
 
 void* FreeBlock_resize(void* block, size_t amountToRemove) {
-    printf("Test: %d, %d\n", FreeBlock_getInternalSize(block), amountToRemove);
-    printf("Test2: %d, %d\n", FreeBlock_getInternalSize(block), externalSizeOfUnfreeBlock(amountToRemove));
     int freeBlockNewSize = FreeBlock_getInternalSize(block) - externalSizeOfUnfreeBlock(amountToRemove);
-
-    FreeBlock_print(block);
-
     // Free block is smaller, so we just resize this free block
     FreeBlock_setInternalSize(block, freeBlockNewSize);
-    printf("Resized free block to %d bytes\n", freeBlockNewSize);
-
-    FreeBlock_print(block);
-
     // The new unfree block starts at the next part
     void* newUnfreeBlock = FreeBlock_getNextContiguousBlock(block);
-    printf("newUnfreeBlock: %p\n", newUnfreeBlock);
     // Construct the unfree block there
     UnFreeBlock_construct(newUnfreeBlock, amountToRemove);
-
-    FreeBlock_print(block);
-
     // Return the unfree block
     return newUnfreeBlock;
 }
 
 void* FreeBlock_split(void* block, int newBlockSize) {
-    printf("Old free Block internal size: %d, newBlockSize: %d\n", FreeBlock_getInternalSize(block), newBlockSize);
     if (FreeBlock_getInternalSize(block) <= externalSizeOfUnfreeBlock(newBlockSize)) {
-        printf("is equal case\n");
         // Make the free block unfree
         FreeBlock_makeUnfree(block);
-        printf("made block unfree\n");
         return block;
     } else {
-        printf("not equal case\n");
         // Resize the existing block
         return FreeBlock_resize(block, (size_t) newBlockSize);
     }
 }
 
-void grow_heap_size(int size) {
-    printf("Growing the heap!\n");
+
+/**
+ * Grow the heap by n bytes.
+ */
+int grow_heap_size(int size) {
+    // This should only be called the first time
+    if (heap_end == NULL) {
+        // Record the beginning of the heap
+        heap_end = sbrk(0);
+    }
+
     // Grow it by the size*2 plus 64 so that if it's a small number then you get 64 extra, and if it's a large number
     // then the double is significant.
     int freeBlockSize = size * 2 + 64;
     // Add size + 64 bytes to the heap
-    my_brk = sbrk(externalSizeOfFreeBlock(freeBlockSize));
-    // Test: Create a free block in the mem
-    FreeBlock_construct(my_brk, freeBlockSize, NULL, NULL);
-    FreeBlockList_insert(my_brk);
+    void* new_brk = sbrk(externalSizeOfFreeBlock(freeBlockSize));
+
+    if (new_brk == -1) {
+        // There was an error!
+        return -1;
+    } else {
+        my_brk = new_brk;
+        // Test: Create a free block in the mem
+        FreeBlock_construct(my_brk, freeBlockSize, NULL, NULL);
+        FreeBlockList_insert(my_brk);
+        return 0;
+    }
 }
 
 
@@ -333,98 +322,43 @@ void grow_heap_size(int size) {
 
 
 void *my_malloc(int size) {
-    printf("my_malloc(%d)\n", size);
-
     // Always add a little extra data to avoid fragmentation
     size += 2 * sizeof(void*) + 1;
 
-    printf("Largest free size: %d\n", FreeBlockList_getLargestBlockSize(firstFreeBlock));
+    // Handle growing the heap if necessary
     if (my_brk == NULL || FreeBlockList_getLargestBlockSize(firstFreeBlock) < size) {
         // Grow the size of the heap appropriately
-        grow_heap_size(size);
+        if (grow_heap_size(size) == -1) {
+            // It didn't work, so set error
+            my_malloc_error = "Cannot grow heap.";
+            return NULL;
+        }
     }
-
-    FreeBlockList_print(firstFreeBlock);
-
-    printf("testlol\n");
-
 
     void* freeBlockThatWillBecomePopulated;
     if (allocationPolicy == BEST_FIT_POLICY) {
-        printf("Executing best fit policy\n");
         // Allocate best first
         freeBlockThatWillBecomePopulated = FreeBlockList_getSmallestAvailable(firstFreeBlock, externalSizeOfUnfreeBlock(size));
     } else {
-        printf("Executing first fit policy\n");
         // Allocate first available
         freeBlockThatWillBecomePopulated = FreeBlockList_getFirstAvailable(firstFreeBlock, externalSizeOfUnfreeBlock(size));
     }
 
-    printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
-
-    printf("Internal Size of freeBlockThatWillBecomePopulated: %d\n", FreeBlock_getInternalSize(freeBlockThatWillBecomePopulated));
-
-    FreeBlockList_print(firstFreeBlock);
-
     // Allocate the relevant portion of the space
     void* newUnfreeBlock = FreeBlock_split(freeBlockThatWillBecomePopulated, size);
-
-    printf("Split successful!\n");
-
-    printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
-
-    FreeBlockList_print(firstFreeBlock);
-
-    printf("my_malloc() about to return\n");
-
     // Return the public address of the new space, etc.
     return UnFreeBlock_getPublicPointer(newUnfreeBlock);
 }
 
 void my_free(void *ptr) {
-    printf("\n\nmy_free(%p)\n", ptr);
-    printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
-    FreeBlockList_print(firstFreeBlock);
     // Get the private pointer of the unfree block
     void*block = UnFreeBlock_publicPointerToPrivatePointer(ptr);
-    printf("got unfree block\n");
-
-    printf("unfree block external size: %d\n", UnfreeBlock_getExternalSize(block));
-    printf("unfree block internal size: %d\n", UnFreeBlock_getInternalSize(block));
-
-    if (UnFreeBlock_getInternalSize(block) - sizeDiff() < 1) {
-        // We can't have a negative block, so we have to merge it!
-
-        // TODO
-    }
-
     // Convert the unfree block into ao free block
     FreeBlock_construct(block, UnFreeBlock_getInternalSize(block) - sizeDiff(), NULL, NULL);
-
-    FreeBlock_print(block);
-
-    printf("block external size: %d\n", FreeBlock_getExternalSize(block));
-
-    printf("unfreeBlock: %d, firstBlock: %d, diff: %d\n", block, firstFreeBlock, block - firstFreeBlock);
-
-    printf("About to insert the unfree block\n");
     // Insert the free block into the linked list
     FreeBlockList_insert(block);
-
-    printf("Finished inserting\n");
-    FreeBlock_print(block);
-
-    printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
-    FreeBlockList_print(firstFreeBlock);
-
-    printf("Merging the continuous blocks\n");
     // Merge with contiguous free blocks
     FreeBlockList_mergeContiguousBlocks(block);
-
-    printf("FirstFreeBlock: %p, lastFreeBlock: %p\n", firstFreeBlock, lastFreeBlock);
-    FreeBlockList_print(firstFreeBlock);
-
-    printf("end my_free()\n\n\n");
 }
 
 
@@ -442,13 +376,14 @@ void my_mallopt(int policy) {
 }
 
 void my_mallinfo() {
-    int totalBytes = 0;
-    int totalFreeSpace = 0;
-    int largestContiguousFreeSpace = 0;
+    int totalFreeSpace = FreeBlockList_totalInternalBlockSize(firstFreeBlock);
+    int totalHeapSize = ((int) sbrk(0)) - ((int) heap_end);
+    int totalAllocatedSpace =  totalHeapSize - totalFreeSpace;
 
     printf("Memory Allocation Information: {\n");
-    printf("Total Bytes Allocated: %d\n", totalBytes);
-    printf("Total Free Space: %d\n", totalFreeSpace);
-    printf("Largest Contiguous Free Space: %d\n", largestContiguousFreeSpace);
+    printf("Total heap size: %d bytes\n", totalHeapSize);
+    printf("Allocated bytes in heap: %d\n", totalAllocatedSpace);
+    printf("Free bytes in heap: %d\n", totalFreeSpace);
+    printf("Largest Contiguous Free Space: %d bytes\n", FreeBlockList_getLargestBlockSize(firstFreeBlock));
     printf("}\n");
 }

@@ -1,5 +1,6 @@
 #include <string.h>
 #include <stdio.h>
+#include <time.h>
 #include "malloc/memory_allocation.h"
 
 int failedTests = 0;
@@ -59,6 +60,9 @@ int main() {
         }
     }
 
+    ASSERT_EQUAL_INT(0, errors, "First INT mismatch test");
+    errors = 0;
+
 //    // Free those values
     for (i = 0; i < maxInt; i++) {
         my_free(intPointers[i]);
@@ -77,10 +81,7 @@ int main() {
         }
     }
 
-
-    printf("Int test complete. %d errors.\n", errors);
-
-
+    ASSERT_EQUAL_INT(0, errors, "Second INT mismatch test");
 
 
     // String Tests
@@ -100,8 +101,10 @@ int main() {
         strcpy(test[i], string[i]);
     }
 
+    printf("Testing that strings were not corrupted...\n");
+
     for (i = 0; i < numStrings; i++) {
-        printf("String test %d:  %s", i + 1, test[i]);
+        ASSERT_EQUAL_STRING(test[i], string[i], "String equality test");
     }
 
     printf("\n/////////////////////\nBegin Free Test:\n/////////////////////\n");
@@ -115,9 +118,11 @@ int main() {
     // Try printing the rest again
     for (i = 0; i < numStrings; i++) {
         if (i != 1 && i != 3) {
-            printf("String test %d:  %s", i + 1, test[i]);
+            ASSERT_EQUAL_STRING(test[i], string[i], "String non-corruption test");
         }
     }
+
+    my_mallinfo();
 
     printf("\n/////////////////////\nBegin Silly Byte Test:\n/////////////////////\n");
 
@@ -127,12 +132,12 @@ int main() {
 
     int numSillyBytes = 182383;
 
-    printf("Writing %d \"silly\" bytes to memory.  This may take a while...\n\n");
+    printf("Writing %d \"silly\" bytes to memory.  This may take a while...\n\n", numSillyBytes);
 
     void* sillytest[numSillyBytes];
     // Malloc a bunch of silly bytes
     for (i = 0; i < numSillyBytes; i++) {
-        printf("i : %d\n", i);
+        //printf("i : %d\n", i);
         sillytest[i] = my_malloc(1);
         // Write 0 to this data to nuke everything
         memset(sillytest[i], '\0', 1);
@@ -145,6 +150,9 @@ int main() {
         memset(sillytest[i], '\0', 1);
         my_free(sillytest[i]);
     }
+
+    printf("Testing changing the malloc policy to best-first.\n");
+    my_mallopt(1);
 
     printf("Writing two of our strings to memory again...\n\n");
 
@@ -166,8 +174,32 @@ int main() {
 
     // See if our strings still work!
     for (i = 0; i < numStrings; i++) {
-        printf("String test %d: %s", i + 1, test[i]);
+        ASSERT_EQUAL_STRING(string[i], test[i], "Non-corrupted string test");
+        //printf("String test %d: %s", i + 1, test[i]);
     }
+
+    printf("Going to malloc until things get too slow\n");
+    int blockSize = 1024 * 1024;
+    i = 0;
+    time_t beginning = 0;
+    time_t end = 0;
+    for (i = 0; i < 2000; i++) {
+        if (my_malloc(blockSize) == NULL) break;
+        if (i%100 == 0) {
+            printf("%d bytes...\n", i * blockSize);
+            // Break if malloc takes more than a second
+            end = time(0);
+            if (beginning != 0 && end - beginning > 1000) break;
+            beginning = time(0);
+        }
+
+    }
+    printf("Successfully malloc'd %d bytes.\n", i * blockSize);
+
+
+    printf("\n\nTESTS COMPLETE\n===============\n");
+
+    printf("%d tests ran. %d errors.\n", totalTests, failedTests);
 
 
     return 0;

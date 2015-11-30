@@ -44,7 +44,7 @@ int main() {
     // Initial Malloc Test
 
     // Int tests
-    int maxInt = 12;
+    int maxInt = 256;
     int* intPointers[maxInt];
     int i;
     int errors = 0;
@@ -52,15 +52,23 @@ int main() {
         intPointers[i] = my_malloc(sizeof(int));
         *intPointers[i] = i;
     }
+    int testFails = 0;
     // Test that the values are corrent
     for (i = 0; i < maxInt; i++) {
+        if (i % 16 == 0) {
+            ASSERT_EQUAL_INT(0, errors, "Int mismatch test");
+            if (errors != 0) {
+                testFails++;
+                errors = 0;
+            }
+        }
         if (*intPointers[i] != i) {
             printf("Error: int mismatch (%d, %d)\n", *intPointers[i], i);
             errors++;
         }
     }
 
-    ASSERT_EQUAL_INT(0, errors, "First INT mismatch test");
+    ASSERT_EQUAL_INT(0, errors, "Summary INT mismatch test");
     errors = 0;
 
 //    // Free those values

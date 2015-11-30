@@ -132,6 +132,13 @@ int main() {
 
     my_mallinfo();
 
+    // Test calling the functions with invalid parameters
+    printf("\n/////////////////////\nInvalid Parameter Test test:\n/////////////////////\n");
+
+    // Make sure mallocing a negative number fails
+    ASSERT_TRUE(my_malloc(-1) == NULL, "Negative Malloc Test");
+
+
     printf("\n/////////////////////\nBegin Silly Byte Test:\n/////////////////////\n");
 
     // Now we're going to malloc a bunch of bytes to
@@ -203,6 +210,18 @@ int main() {
 
     }
     printf("Successfully malloc'd %d bytes.\n", i * blockSize);
+
+    // See if our strings still work!
+    for (i = 0; i < numStrings; i++) {
+        ASSERT_EQUAL_STRING(string[i], test[i], "Non-corrupted string test");
+    }
+
+
+    printf("\n/////////////////////\nHeap resize test:\n/////////////////////\n");
+    void* massive = my_malloc(128000);
+    my_free(massive);
+    void* massive2 = my_malloc(128000);
+    ASSERT_EQUAL_PTR(massive, massive2, "Heap resize test");
 
 
     printf("\n\nTESTS COMPLETE\n===============\n");

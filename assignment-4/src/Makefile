@@ -7,3 +7,6 @@ all:
 
 clean:
 	rm main.exe
+	rm *.o
+	rm *.gch
+	rm malloc/*.gch

@@ -301,7 +301,7 @@ int grow_heap_size(int size) {
     // Add size + 64 bytes to the heap
     void* new_brk = sbrk(externalSizeOfFreeBlock(freeBlockSize));
 
-    if (new_brk == -1) {
+    if (new_brk == (void*) -1) {
         // There was an error!
         return -1;
     } else {
@@ -322,11 +322,17 @@ int grow_heap_size(int size) {
 
 
 void *my_malloc(int size) {
+    // Make sure that the input is valid
+    if (size <= 0) {
+        my_malloc_error = "Size cannot be less than 1 byte.";
+        return NULL;
+    }
+
     // Always add a little extra data to avoid fragmentation
     size += 2 * sizeof(void*) + 1;
 
     // Handle growing the heap if necessary
-    if (my_brk == NULL || FreeBlockList_getLargestBlockSize(firstFreeBlock) < size) {
+    if (my_brk == NULL || firstFreeBlock == NULL || FreeBlockList_getLargestBlockSize(firstFreeBlock) < size) {
         // Grow the size of the heap appropriately
         if (grow_heap_size(size) == -1) {
             // It didn't work, so set error
@@ -351,6 +357,10 @@ void *my_malloc(int size) {
 }
 
 void my_free(void *ptr) {
+    // Don't do anything if pointer is null
+    if (ptr == NULL) {
+        return;
+    }
     // Get the private pointer of the unfree block
     void*block = UnFreeBlock_publicPointerToPrivatePointer(ptr);
     // Convert the unfree block into ao free block
@@ -359,6 +369,21 @@ void my_free(void *ptr) {
     FreeBlockList_insert(block);
     // Merge with contiguous free blocks
     FreeBlockList_mergeContiguousBlocks(block);
+
+    // Lower brk if last free block is more than 128kb.
+    if (lastFreeBlock != NULL) {
+        int lastBlockSize = FreeBlock_getExternalSize(lastFreeBlock);
+        if (lastBlockSize > 128000 && (lastFreeBlock == my_brk)) {
+            void* address = lastFreeBlock;
+            // Decrease the size of the memory
+            sbrk(0 - FreeBlock_getExternalSize(lastFreeBlock));
+            // Record the new brk location
+            my_brk = sbrk(0);
+            // Remove it from the liast
+            FreeBlockList_remove(lastFreeBlock);
+        }
+    }
+
 }
 
 

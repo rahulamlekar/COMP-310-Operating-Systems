@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
-#include "memory_allocation.h"
+#include "malloc.h"
 #include "utils/constants.h"
 #include "structs/free_block.h"
 #include "structs/unfree_block.h"
@@ -34,7 +34,7 @@ char* my_malloc_error = NULL;
 //
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-int FreeBlockList_getLargestBlockSize(void* head) {
+static int FreeBlockList_getLargestBlockSize(void* head) {
     int largest = 0;
     int currentSize = 0;
 
@@ -54,7 +54,7 @@ int FreeBlockList_getLargestBlockSize(void* head) {
     return largest;
 }
 
-int FreeBlockList_totalInternalBlockSize(void* head) {
+static int FreeBlockList_totalInternalBlockSize(void* head) {
     int output = 0;
 
     void* next = head;
@@ -71,7 +71,7 @@ int FreeBlockList_totalInternalBlockSize(void* head) {
 /**
  * Get the first available free block that is at least as big as the size param.
  */
-void* FreeBlockList_getFirstAvailable(void* head, int externalSize) {
+static void* FreeBlockList_getFirstAvailable(void* head, int externalSize) {
     void* next = head;
     while (next != NULL) {
         // Basically, we loop through the free block linkedlist until we find something big enough
@@ -89,7 +89,7 @@ void* FreeBlockList_getFirstAvailable(void* head, int externalSize) {
 /**
  * Get the smallesst available block that is at least as big as size
  */
-void* FreeBlockList_getSmallestAvailable(void* head, int externalSize) {
+static void* FreeBlockList_getSmallestAvailable(void* head, int externalSize) {
     void* smallestBlock = NULL;
     int smallestSize = INT_MAX;
 
@@ -109,7 +109,7 @@ void* FreeBlockList_getSmallestAvailable(void* head, int externalSize) {
     return smallestBlock;
 }
 
-void FreeBlockList_mergeContiguousBlockLeft(void* block) {
+static void FreeBlockList_mergeContiguousBlockLeft(void* block) {
     void* left = FreeBlock_getPrev(block);
     if (left != NULL && FreeBlock_getNextContiguousBlock(left) == block) {
         // Set the next pointer of the
@@ -124,7 +124,7 @@ void FreeBlockList_mergeContiguousBlockLeft(void* block) {
     }
 }
 
-void FreeBlockList_mergeContiguousBlockRight(void* block) {
+static void FreeBlockList_mergeContiguousBlockRight(void* block) {
     void* right = FreeBlock_getNext(block);
     if (right != NULL && FreeBlock_getNextContiguousBlock(block) == right) {
         // Set the next pointer of the
@@ -142,7 +142,7 @@ void FreeBlockList_mergeContiguousBlockRight(void* block) {
 /**
  * Merge a contiguous bock left or right
  */
-void FreeBlockList_mergeContiguousBlocks(void* block) {
+static void FreeBlockList_mergeContiguousBlocks(void* block) {
     // Try to merge right
     FreeBlockList_mergeContiguousBlockRight(block);
     // Try to merge left
@@ -153,7 +153,7 @@ void FreeBlockList_mergeContiguousBlocks(void* block) {
 /**
  * Remove a free block from the linked list
  */
-void FreeBlockList_remove(void* block) {
+static void FreeBlockList_remove(void* block) {
     if (firstFreeBlock == lastFreeBlock) {
         // There is only 1 block
         firstFreeBlock = NULL;
@@ -177,7 +177,7 @@ void FreeBlockList_remove(void* block) {
     }
 }
 
-void FreeBlockList_insertBeginning(void* newBlock) {
+static void FreeBlockList_insertBeginning(void* newBlock) {
     // This is the new first block
     // Set the new block's prev and next
     FreeBlock_setNext(newBlock, firstFreeBlock);
@@ -188,7 +188,7 @@ void FreeBlockList_insertBeginning(void* newBlock) {
     firstFreeBlock = newBlock;
 }
 
-void FreeBlockList_insertEnd(void* newBlock) {
+static void FreeBlockList_insertEnd(void* newBlock) {
     // This is the new last block
     FreeBlock_setPrev(newBlock, lastFreeBlock);
     FreeBlock_setNext(newBlock, NULL);
@@ -200,7 +200,7 @@ void FreeBlockList_insertEnd(void* newBlock) {
 /**
  * The linked list is currently empty.  After the insertion, it will only have one member.
  */
-void FreeBlockList_insertOnly(void* newBlock) {
+static void FreeBlockList_insertOnly(void* newBlock) {
     firstFreeBlock = newBlock;
     lastFreeBlock = newBlock;
     FreeBlock_setNext(newBlock, NULL);
@@ -211,7 +211,7 @@ void FreeBlockList_insertOnly(void* newBlock) {
 /**
  * Insert a new block into the linked list at the appropriate location
  */
-void FreeBlockList_insertSomeWhereInList(void* newBlock) {
+static void FreeBlockList_insertSomeWhereInList(void* newBlock) {
     void* current = firstFreeBlock;
     void* next;
     while (current != NULL) {
@@ -233,7 +233,7 @@ void FreeBlockList_insertSomeWhereInList(void* newBlock) {
 /**
  * Insert a new free block into the appropriate place in the linked list
  */
-void FreeBlockList_insert(void* newBlock) {
+static void FreeBlockList_insert(void* newBlock) {
     if (firstFreeBlock == NULL && lastFreeBlock == NULL) {
         // This will be the only free block
         FreeBlockList_insertOnly(newBlock);
@@ -253,7 +253,7 @@ void FreeBlockList_insert(void* newBlock) {
 /**
  * Convert a free block to an unfree block
  */
-void FreeBlock_makeUnfree(void* block) {
+static void FreeBlock_makeUnfree(void* block) {
     // Remove from the free block list
     FreeBlockList_remove(block);
     // Construct an unfree block on top
@@ -261,7 +261,7 @@ void FreeBlock_makeUnfree(void* block) {
     UnFreeBlock_construct(block, newSize);
 }
 
-void* FreeBlock_resize(void* block, size_t amountToRemove) {
+static void* FreeBlock_resize(void* block, size_t amountToRemove) {
     int freeBlockNewSize = FreeBlock_getInternalSize(block) - externalSizeOfUnfreeBlock(amountToRemove);
     // Free block is smaller, so we just resize this free block
     FreeBlock_setInternalSize(block, freeBlockNewSize);
@@ -273,7 +273,7 @@ void* FreeBlock_resize(void* block, size_t amountToRemove) {
     return newUnfreeBlock;
 }
 
-void* FreeBlock_split(void* block, int newBlockSize) {
+static void* FreeBlock_split(void* block, int newBlockSize) {
     if (FreeBlock_getInternalSize(block) <= externalSizeOfUnfreeBlock(newBlockSize)) {
         // Make the free block unfree
         FreeBlock_makeUnfree(block);
@@ -288,18 +288,18 @@ void* FreeBlock_split(void* block, int newBlockSize) {
 /**
  * Grow the heap by n bytes.
  */
-int grow_heap_size(int size) {
+static int grow_heap_size(int size) {
     // This should only be called the first time
     if (heap_end == NULL) {
         // Record the beginning of the heap
-        heap_end = sbrk(0);
+        heap_end = (void*) sbrk(0);
     }
 
     // Grow it by the size*2 plus 64 so that if it's a small number then you get 64 extra, and if it's a large number
     // then the double is significant.
     int freeBlockSize = size * 2 + 64;
     // Add size + 64 bytes to the heap
-    void* new_brk = sbrk(externalSizeOfFreeBlock(freeBlockSize));
+    void* new_brk = (void*) sbrk(externalSizeOfFreeBlock(freeBlockSize));
 
     if (new_brk == (void*) -1) {
         // There was an error!
@@ -357,8 +357,9 @@ void *my_malloc(int size) {
 }
 
 void my_free(void *ptr) {
-    // Don't do anything if pointer is null
+    // Don't do anything if pointer is null or invalid
     if (ptr == NULL) {
+        my_malloc_error = "Cannot free null";
         return;
     }
     // Get the private pointer of the unfree block
@@ -378,7 +379,7 @@ void my_free(void *ptr) {
             // Decrease the size of the memory
             sbrk(0 - FreeBlock_getExternalSize(lastFreeBlock));
             // Record the new brk location
-            my_brk = sbrk(0);
+            my_brk = (void*) sbrk(0);
             // Remove it from the liast
             FreeBlockList_remove(lastFreeBlock);
         }

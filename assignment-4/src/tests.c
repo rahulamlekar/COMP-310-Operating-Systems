@@ -1,7 +1,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <time.h>
-#include "malloc/memory_allocation.h"
+#include "malloc/malloc.h"
 
 int failedTests = 0;
 int totalTests = 0;
@@ -55,7 +55,7 @@ int main() {
     int testFails = 0;
     // Test that the values are corrent
     for (i = 0; i < maxInt; i++) {
-        if (i % 16 == 0) {
+        if (i % 4 == 0) {
             ASSERT_EQUAL_INT(0, errors, "Int mismatch test");
             if (errors != 0) {
                 testFails++;
@@ -138,6 +138,9 @@ int main() {
     // Make sure mallocing a negative number fails
     ASSERT_TRUE(my_malloc(-1) == NULL, "Negative Malloc Test");
 
+    // Make sure you can't free null
+    my_free(NULL);
+    ASSERT_EQUAL_STRING(my_malloc_error, "Cannot free null", "Null Free Test");
 
     printf("\n/////////////////////\nBegin Silly Byte Test:\n/////////////////////\n");
 

@@ -1,12 +1,12 @@
 all:
 	gcc -c malloc/*.h
 	gcc -c malloc/*.c
-	gcc -c main.c
-	gcc -Imalloc -o main.exe main.o memory_allocation.o
+	gcc -c tests.c
+	gcc -Imalloc -o tests.exe tests.o malloc.o
 
 
 clean:
-	rm main.exe
+	rm tests.exe
 	rm *.o
 	rm *.gch
 	rm malloc/*.gch

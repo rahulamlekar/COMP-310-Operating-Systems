@@ -40,11 +40,14 @@ corrupted anything.
 I then run some string tests, continuously allocating and copying some strings.
 I also check that my_free() calls don't mess up any fof the saved strings.
 
+I also run my_mallinfo() to see that the malloc system is allocating data correctly.
+
 I then do some invalid parameter tests to make sure that edge cases don't crash the program.
 
 I then do a "silly byte" test where I malloc hundreds of thousands of individual bytes.
 I then free half of those bytes and do string testing again.  After freeing the other
-half of the silly bytes I check that my strings haven't been corrupted.
+half of the silly bytes I check that my strings haven't been corrupted.  I also check that
+changing the policy with my_mallopt() works.
 
 Finally, I test that allocating millions of bytes doesn't crash the program or corrupt
 the previously allocated strings.
